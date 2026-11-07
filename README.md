@@ -53,6 +53,8 @@ node tests/interaction.cjs
 
 ## Related Vivaldi issue
 
+Reported to Vivaldi as **VB-133154** on **7 November 2026**, with reproduction steps and this workaround attached. The report describes a possible regression; Vivaldi has not confirmed its cause.
+
 The original fault resembles **VB-76734**, which Vivaldi listed as fixed in March 2021. A user report from February 2021 describes the same loss of the browser's fullscreen Space. This does not establish that the current fault has the same cause. \[1\], \[2\]
 
 ## References
