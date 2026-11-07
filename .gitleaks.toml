@@ -1,0 +1,11 @@
+title = "YouTube Fullscreen Stay"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exact public extension identity key capture, not a credential"
+condition = "AND"
+paths = ['''^extension/manifest\.json$''']
+regexTarget = "secret"
+regexes = ['''^MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzoDiOx3FLLxqx6FUyRXxykIzF7ZA06O6FFgyNn\+YzpvpAU0vn9d3ilJJgyzeHYggc8CJMyBtaWws7lWfEZt38puZCeX3BkUcNSZXsu3p6\+9LK6jQdUCJ6V4hKkRk3E9ylGITQ1GQ5wswOjB/\+m4bbc5xL5ts6SFF2gT81x\+eOGekqGVQOpmKJWD5cknaGxJ3AZTHdKmEAxG0aF1AOY\+rh1\+MHMqnPXbdNULa46oOGHDZuvEo9xKfmIlAVaaHbFptMvImGv3YnbwndRWFX7FluOKOxhgwumYFiZYqDhW7AcCg8wxoIzuwEmvfbpOI7ve3R7/xyvMZzOeudL\+Jv4X\+ZQIDAQAB$''']

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0 — 7 November 2026
+
+Security update. Replace both the extension and companion CSS.
+
+- Replace page-title signalling with an extension-owned per-tab action badge and an active YouTube webview check.
+- Reject synthetic input and validate origin, frame, document lifecycle and message schema.
+- Remove page-title mutations and add a stable public extension ID.
+- Add pre-commit checks, secret scanning, dependency advisories, CodeQL, browser attack tests and allow-listed release packaging.
+- Keep the runtime free of third-party dependencies. The new event-driven worker updates only its own badge and has no polling timer.
+
 ## 1.0.2 — 7 November 2026
 
 First public source release.
