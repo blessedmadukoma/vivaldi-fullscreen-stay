@@ -9,10 +9,11 @@ This workaround expands the existing YouTube player inside the browser window. A
 ## Install
 
 1. Download the ZIP from [Releases](https://github.com/blessedmadukoma/youtube-fullscreen-stay/releases/latest). Extract it to a permanent folder. Keep that folder after installation.
-2. Open `vivaldi://extensions/`. Enable **Developer mode**, select **Load unpacked**, and choose the extracted `extension` folder.
-3. Open `vivaldi://experiments/` and enable **Allow CSS modifications** if needed to expose the appearance setting.
-4. Open **Settings → Appearance → Custom UI Modifications**. Select the extracted `vivaldi-ui` folder. If you already use a custom CSS folder, copy `youtube-fullscreen.css` into that folder instead.
-5. Restart Vivaldi. Refresh YouTube tabs that were already open.
+2. Disable or remove any older YouTube Fullscreen Stay installation. Open `vivaldi://extensions/`, enable **Developer mode**, select **Load unpacked**, and choose the extracted `extension` folder.
+3. Pin **YouTube Fullscreen Stay** in Vivaldi’s extensions toolbar. The protected toolbar badge controls the companion appearance rule. If the icon is hidden, the video can fill the tab while browser bars remain visible.
+4. Open `vivaldi://experiments/` and enable **Allow CSS modifications** if needed to expose the appearance setting.
+5. Open **Settings → Appearance → Custom UI Modifications**. Select the extracted `vivaldi-ui` folder. If you already use a custom CSS folder, copy `youtube-fullscreen.css` into that folder instead.
+6. Restart Vivaldi. Refresh YouTube tabs that were already open.
 
 These changes affect the current Vivaldi profile. They do not edit Vivaldi's application files.
 
@@ -31,19 +32,29 @@ If the browser is windowed, the video fills that window. The extension does not 
 
 The content script runs only on `https://www.youtube.com/*`. The browser's site-access notice applies: it can read and change YouTube pages. The code uses this access for the player layout, temporary page-title prefix and keyboard controls.
 
-The extension has no background worker, network requests, analytics, remote code, data storage or polling timers. YouTube itself continues to make its normal network requests.
+The extension sends no network requests, analytics or remote code and stores no data. A small event-driven service worker validates state messages and updates only its own toolbar badge. It has no polling or keep-alive timer. YouTube itself continues to make its normal network requests. See [SECURITY.md](SECURITY.md) for the threat model and limits.
 
 ## Limits and verification
 
 Version **1.0.2** was checked on **Vivaldi 8.3.4191.30, macOS 26.7.2, Apple silicon**. The user confirmed stable fullscreen playback and both transitions: **F → T** and **theatre → F → Esc**. The YouTube queue was retained.
 
-YouTube or Vivaldi layout changes can require an update. Embedded players, Shorts, other video sites and other browser versions have not been verified. The appearance rule depends on Vivaldi's interface selectors and a temporary title prefix. It keeps the tab bar in layout, because removing it caused a repeated show/hide cycle in the first local version.
+YouTube or Vivaldi layout changes can require an update. Embedded players, Shorts, other video sites and other browser versions have not been verified. Version 1.1.0 replaces page-title signalling with an extension-owned badge and an exact YouTube webview check. The appearance rule still depends on Vivaldi’s interface selectors. It keeps the tab bar in layout, because removing it caused a repeated show/hide cycle in the first local version.
 
 The local checks use a mock page to check key handling and restoration. They do not replace testing in a real browser:
 
 ```sh
-node tests/interaction.cjs
+npm ci --ignore-scripts
+npm run check
+npm test
+npx playwright install chromium
+npm run test:browser
+npm run secrets
+npm audit --audit-level=moderate
 ```
+
+For local pre-commit checks, run `git config core.hooksPath .githooks`. The repository also provides `.pre-commit-config.yaml` for users of the pre-commit framework. These checks inspect the staged diff for secrets and the full working tree for code policy and tests. CI checks committed content independently.
+
+Read the [security audit](docs/security-audit.md) before relying on the extension. Version 1.0.2 is superseded because its title-based appearance rule could be spoofed.
 
 ## Remove
 
