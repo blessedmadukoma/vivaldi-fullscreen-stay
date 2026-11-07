@@ -5,12 +5,12 @@ const crypto = require('node:crypto');
 const acorn = require('acorn');
 const root = path.join(__dirname, '..');
 
-function walk(node, visit) {
+function walk(node, visit, parent = null) {
   if (!node || typeof node !== 'object') return;
-  if (node.type) visit(node);
+  if (node.type) visit(node,parent);
   for (const value of Object.values(node)) {
-    if (Array.isArray(value)) value.forEach(child => walk(child,visit));
-    else if (value && typeof value === 'object') walk(value,visit);
+    if (Array.isArray(value)) value.forEach(child => walk(child,visit,node));
+    else if (value && typeof value === 'object') walk(value,visit,node);
   }
 }
 
@@ -30,14 +30,18 @@ function checkSource(source, filename) {
     'chrome.runtime.id','chrome.runtime.onMessage.addListener','chrome.action.setBadgeText',
     'chrome.tabs.onUpdated.addListener','chrome.tabs.onRemoved.addListener'
   ];
-  walk(tree,node=>{
+  walk(tree,(node,parent)=>{
     if (node.type === 'Identifier' && forbidden.has(node.name)) throw new Error(`${filename}: forbidden capability ${node.name}`);
     if (node.type === 'ImportExpression' || node.type === 'WithStatement') throw new Error(`${filename}: dynamic code is forbidden`);
+    if (node.type === 'Identifier' && node.name === 'chrome' && !(parent?.type === 'MemberExpression' && parent.object === node)) throw new Error(`${filename}: browser API aliases require security review`);
     if (node.type !== 'MemberExpression') return;
     if (node.computed) throw new Error(`${filename}: computed property access requires security review`);
     const name=node.property.name, full=member(node);
     if (properties.has(name) || name === 'constructor' || full === 'document.title') throw new Error(`${filename}: forbidden property ${full}`);
-    if (full?.startsWith('chrome.') && !api.some(allowed=>allowed === full || allowed.startsWith(full+'.'))) throw new Error(`${filename}: unapproved browser API ${full}`);
+    if (full?.startsWith('chrome.')) {
+      const nested=parent?.type === 'MemberExpression' && parent.object === node;
+      if (!(nested ? api.some(allowed=>allowed === full || allowed.startsWith(full+'.')) : api.includes(full))) throw new Error(`${filename}: unapproved browser API ${full}`);
+    }
   });
   walk(tree,node=>{
     if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression' || node.callee.property.name !== 'setAttribute') return;
@@ -56,6 +60,8 @@ function main() {
   const allowed=new Set(['manifest_version','name','version','description','minimum_chrome_version','key','action','icons','background','content_scripts','content_security_policy']);
   for(const key of Object.keys(manifest)) assert(allowed.has(key),`Unapproved manifest key: ${key}`);
   assert.equal(manifest.manifest_version,3);
+  assert.equal(manifest.version,JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version);
+  assert(/^\d+(\.\d+){1,3}$/.test(manifest.version),'Invalid version');
   assert.deepEqual(manifest.background,{service_worker:'background.js'});
   assert.equal(manifest.content_scripts.length,1);
   assert.deepEqual(manifest.content_scripts[0],{matches:['https://www.youtube.com/*'],run_at:'document_start',js:['content.js'],css:['player.css'],all_frames:false,world:'ISOLATED'});

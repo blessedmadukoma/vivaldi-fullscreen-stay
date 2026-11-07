@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {checkSource,checkCss}=require('../scripts/security-check.cjs');
 
 test('Security policy rejects network, storage, remote code and dangerous DOM capabilities',()=>{
-  for(const code of ['fetch("https://example.invalid")','new WebSocket("wss://example.invalid")','navigator.sendBeacon("https://example.invalid", "x")','document.cookie','localStorage.getItem("x")','eval("1")','new Function("return 1")','document.body.innerHTML="x"','document.createElement("img")','chrome.tabs.query({})','chrome["runtime"]','document.title="forged"','document.body.setAttribute("src","https://example.invalid")']) assert.throws(()=>checkSource(code,'content.js'),undefined,code);
+  for(const code of ['fetch("https://example.invalid")','new WebSocket("wss://example.invalid")','navigator.sendBeacon("https://example.invalid", "x")','document.cookie','localStorage.getItem("x")','eval("1")','new Function("return 1")','document.body.innerHTML="x"','document.createElement("img")','chrome.tabs.query({})','chrome["runtime"]','const api=chrome; api.tabs.create({})','const api=chrome.tabs; api.create({})','document.title="forged"','document.body.setAttribute("src","https://example.invalid")']) assert.throws(()=>checkSource(code,'content.js'),undefined,code);
 });
 
 test('Security policy accepts only the reviewed content-script browser API',()=>{

@@ -22,7 +22,7 @@ The content script shares the page's DOM but has isolated JavaScript globals. Th
 
 Local checks cover forged titles, synthetic events, wrong origins, iframe senders, inactive documents, malformed messages, extra data fields, stale navigation state, typing, theatre transitions and a rejected badge update. Chromium browser tests use isolated temporary profiles and local route fixtures; no personal browser profile or account is used. They also check that ordinary expansion generates no additional page requests.
 
-The CSS tests model Vivaldi's protected interface structure. They are not a substitute for a live Vivaldi test after a browser UI update. YouTube itself makes network requests, and other installed extensions are outside this audit. Unpacked installations require the user to install updates manually.
+The CSS tests model Vivaldi's protected interface structure. The hardened helper was also checked live in Vivaldi 8.3.4191.30: the protected badge covered the browser controls, and F, Esc and theatre transitions retained native Mac fullscreen. The model tests are not a substitute for retesting Vivaldi after a browser UI update. YouTube itself makes network requests, and other installed extensions are outside this audit. Unpacked installations require the user to install updates manually.
 
 ## References
 
@@ -30,3 +30,5 @@ The CSS tests model Vivaldi's protected interface structure. They are not a subs
 2. Chrome for Developers, [“Stay secure”](https://developer.chrome.com/docs/extensions/develop/security-privacy/stay-secure).
 3. Playwright, [“Chrome extensions”](https://playwright.dev/docs/chrome-extensions).
 4. GitHub, [“Workflow configuration options for code scanning”](https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options).
+
+Verification at this revision: 24 local unit/policy/packaging tests, five Chromium browser tests, CodeQL with zero open alerts, zero npm advisories, and clean staged/history secret scans. A negative control with a generated, non-functional credential was rejected by Gitleaks. The only exception is the exact public extension identity key in `extension/manifest.json`. Release builds require clean committed source and an exact file allow-list.
