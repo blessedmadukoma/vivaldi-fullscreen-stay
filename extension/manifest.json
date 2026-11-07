@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Fullscreen Stay",
+  "version": "1.0.2",
+  "description": "Use F and Esc for a full-window YouTube player, preserving the browser's Mac fullscreen state.",
+  "content_scripts": [{
+    "matches": ["https://www.youtube.com/*"],
+    "run_at": "document_start",
+    "js": ["content.js"],
+    "css": ["player.css"]
+  }]
+}

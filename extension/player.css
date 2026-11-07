@@ -1,0 +1,47 @@
+/* Keep the existing browser window. Do not invoke the native Fullscreen API. */
+html[data-vfs-active], html[data-vfs-active] body {
+  overflow: hidden !important;
+}
+
+html[data-vfs-active] [data-vfs-player] {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  transform: none !important;
+  z-index: 2147483647 !important;
+  background: #000 !important;
+}
+
+html[data-vfs-active] [data-vfs-player]::backdrop {
+  background: #000 !important;
+}
+
+html[data-vfs-active] [data-vfs-player] .html5-video-container {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+html[data-vfs-active] [data-vfs-player] video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  transform: none !important;
+}
+
+html[data-vfs-active] [data-vfs-player] .ytp-chrome-bottom {
+  left: 12px !important;
+  width: calc(100% - 24px) !important;
+}

@@ -1,0 +1,32 @@
+/* Cover the browser controls without changing the tab bar's layout.
+   Vivaldi virtualises tabs. Removing their bar from layout can remove the
+   active tab that this selector observes, creating a show/hide cycle. */
+@scope (#browser.fullscreen:has(.tab-wrapper.active[aria-label*="⛶ YouTube • "])) {
+  /* Keep the surrounding browser geometry and virtualised tabs unchanged. */
+  #webview-container,
+  #webpage-stack,
+  .webpageview.active {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #main,
+  #main > .inner {
+    overflow: visible !important;
+  }
+
+  #webview-container {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    z-index: 2147483647 !important;
+  }
+}
