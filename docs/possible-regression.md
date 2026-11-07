@@ -1,5 +1,7 @@
 # Possible regression of VB-76734 in Vivaldi 8.3
 
+Submitted to Vivaldi as **VB-133154** on **7 November 2026**. Vivaldi accepted the report; this does not mean that it has confirmed the regression or its cause.
+
 Leaving a fullscreen YouTube video also takes the Vivaldi window out of native macOS fullscreen.
 
 ## Steps to reproduce
