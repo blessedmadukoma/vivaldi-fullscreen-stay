@@ -1,12 +1,43 @@
 {
   "manifest_version": 3,
   "name": "YouTube Fullscreen Stay",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Use F and Esc for a full-window YouTube player, preserving the browser's Mac fullscreen state.",
-  "content_scripts": [{
-    "matches": ["https://www.youtube.com/*"],
-    "run_at": "document_start",
-    "js": ["content.js"],
-    "css": ["player.css"]
-  }]
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "run_at": "document_start",
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "player.css"
+      ],
+      "all_frames": false,
+      "world": "ISOLATED"
+    }
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzoDiOx3FLLxqx6FUyRXxykIzF7ZA06O6FFgyNn+YzpvpAU0vn9d3ilJJgyzeHYggc8CJMyBtaWws7lWfEZt38puZCeX3BkUcNSZXsu3p6+9LK6jQdUCJ6V4hKkRk3E9ylGITQ1GQ5wswOjB/+m4bbc5xL5ts6SFF2gT81x+eOGekqGVQOpmKJWD5cknaGxJ3AZTHdKmEAxG0aF1AOY+rh1+MHMqnPXbdNULa46oOGHDZuvEo9xKfmIlAVaaHbFptMvImGv3YnbwndRWFX7FluOKOxhgwumYFiZYqDhW7AcCg8wxoIzuwEmvfbpOI7ve3R7/xyvMZzOeudL+Jv4X+ZQIDAQAB",
+  "minimum_chrome_version": "120",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "YouTube Fullscreen Stay",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'; base-uri 'none'"
+  }
 }

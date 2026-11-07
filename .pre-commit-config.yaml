@@ -1,0 +1,19 @@
+# Optional alternative to .githooks/pre-commit. All checks run locally.
+repos:
+  - repo: local
+    hooks:
+      - id: extension-security-policy
+        name: Extension permission and data-flow policy
+        entry: npm run check
+        language: system
+        pass_filenames: false
+      - id: extension-tests
+        name: Extension interaction and attack tests
+        entry: npm test
+        language: system
+        pass_filenames: false
+      - id: staged-secrets
+        name: Gitleaks staged changes
+        entry: python3 scripts/gitleaks.py --staged
+        language: system
+        pass_filenames: false

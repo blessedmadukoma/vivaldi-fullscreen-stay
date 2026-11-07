@@ -1,3 +1,11 @@
 .DS_Store
 *.zip
 SHA256SUMS
+node_modules/
+.cache/
+dist/
+test-results/
+playwright-report/
+*.pem
+.env
+.env.*

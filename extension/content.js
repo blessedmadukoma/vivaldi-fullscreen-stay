@@ -1,8 +1,8 @@
 (() => {
   "use strict";
+  if (location.origin !== "https://www.youtube.com" || window.top !== window) return;
   const ROOT = "data-vfs-active";
   const PLAYER = "data-vfs-player";
-  const TITLE_PREFIX = "⛶ YouTube • ";
   const swallowed = new Set();
   let saved = null;
 
@@ -12,7 +12,14 @@
     ));
   }
 
-  function exit() {
+  function signal(expanded) {
+    const state = saved;
+    chrome.runtime.sendMessage({ type: "vfs:state", expanded }).then(result => {
+      if (expanded && saved === state && result?.ok !== true) exit(false);
+    }).catch(() => { if (expanded && saved === state) exit(false); });
+  }
+
+  function exit(notify = true) {
     if (!saved) return;
     const old = saved;
     saved = null;
@@ -22,46 +29,47 @@
     else old.player.setAttribute("popover", old.popover);
     document.documentElement.removeAttribute(ROOT);
     old.player.removeAttribute(PLAYER);
-    if (document.title.startsWith(TITLE_PREFIX)) document.title = document.title.slice(TITLE_PREFIX.length);
     if (old.button?.isConnected) {
-      for (const [name, value] of old.buttonAttributes) {
-        if (value === null) old.button.removeAttribute(name);
-        else old.button.setAttribute(name, value);
-      }
+      if (old.ariaLabel === null) old.button.removeAttribute("aria-label");
+      else old.button.setAttribute("aria-label", old.ariaLabel);
+      if (old.title === null) old.button.removeAttribute("title");
+      else old.button.setAttribute("title", old.title);
+      if (old.tooltip === null) old.button.removeAttribute("data-title-no-tooltip");
+      else old.button.setAttribute("data-title-no-tooltip", old.tooltip);
     }
     window.scrollTo(old.scrollX, old.scrollY);
+    if (notify) signal(false);
   }
 
   function enter() {
     const player = document.querySelector("#movie_player");
-    if (!player || !player.querySelector("video") || document.fullscreenElement) return false;
+    if (!(player instanceof HTMLElement) || !(player.querySelector("video") instanceof HTMLVideoElement) || document.fullscreenElement) return false;
     if (typeof player.showPopover !== "function" || player.matches(":popover-open")) return false;
     const button = player.querySelector(".ytp-fullscreen-button");
-    const observer = new MutationObserver(() => {
-      if (!player.isConnected) exit();
-      else if (!document.title.startsWith(TITLE_PREFIX)) document.title = TITLE_PREFIX + document.title;
-    });
+    const observer = new MutationObserver(() => { if (!player.isConnected) exit(); });
     saved = {
       player, button, observer, popover: player.getAttribute("popover"),
       scrollX: window.scrollX, scrollY: window.scrollY,
-      buttonAttributes: ["aria-label", "title", "data-title-no-tooltip"].map(name => [name, button?.getAttribute(name) ?? null])
+      ariaLabel: button?.getAttribute("aria-label") ?? null,
+      title: button?.getAttribute("title") ?? null,
+      tooltip: button?.getAttribute("data-title-no-tooltip") ?? null
     };
-    player.setAttribute(PLAYER, "");
-    document.documentElement.setAttribute(ROOT, "");
+    player.setAttribute("data-vfs-player", "");
+    document.documentElement.setAttribute("data-vfs-active", "");
     player.setAttribute("popover", "manual");
     try {
       player.showPopover();
     } catch {
-      exit();
+      exit(false);
       return false;
     }
-    document.title = TITLE_PREFIX + document.title;
     if (button) {
       button.setAttribute("aria-label", "Exit video fullscreen (f)");
       button.setAttribute("title", "Exit video fullscreen (f)");
       button.setAttribute("data-title-no-tooltip", "Exit video fullscreen");
     }
     observer.observe(document.documentElement, { childList: true, subtree: true });
+    signal(true);
     return true;
   }
 
@@ -76,6 +84,7 @@
   }
 
   window.addEventListener("keydown", event => {
+    if (!event.isTrusted) return;
     const key = event.key.toLowerCase();
     if (event.repeat && swallowed.has(key)) {
       consume(event);
@@ -104,11 +113,13 @@
   }, true);
 
   window.addEventListener("keyup", event => {
+    if (!event.isTrusted) return;
     const key = event.key.toLowerCase();
     if (swallowed.delete(key)) consume(event);
   }, true);
 
   window.addEventListener("click", event => {
+    if (!event.isTrusted) return;
     if (event.button || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (saved && event.target instanceof Element && event.target.closest("#movie_player .ytp-size-button")) {
       exit();
@@ -119,12 +130,15 @@
   }, true);
 
   window.addEventListener("dblclick", event => {
+    if (!event.isTrusted) return;
     if (event.button || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (!(event.target instanceof Element) || !event.target.matches("#movie_player video, #movie_player .html5-video-container")) return;
     if (toggle()) consume(event);
   }, true);
 
   window.addEventListener("blur", () => swallowed.clear());
-  window.addEventListener("pagehide", exit);
-  window.addEventListener("yt-navigate-start", exit, true);
+  window.addEventListener("pagehide", () => exit());
+  window.addEventListener("yt-navigate-start", () => exit(), true);
+  // Reset stale state without sending page content or account data.
+  signal(false);
 })();
