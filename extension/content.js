@@ -1,10 +1,41 @@
 (() => {
   "use strict";
-  if (location.origin !== "https://www.youtube.com" || window.top !== window) return;
+  const youtube = location.origin === "https://www.youtube.com";
+  const x = location.origin === "https://x.com";
+  if ((!youtube && !x) || window.top !== window) return;
   const ROOT = "data-vfs-active";
   const PLAYER = "data-vfs-player";
   const swallowed = new Set();
   let saved = null;
+  let hoveredPlayer = null;
+
+  function privateXPage() {
+    return x && /^\/(?:i\/(?:chat|calls|flow)|messages|settings|compose|account|login|logout|oauth)(?:\/|$)/.test(location.pathname);
+  }
+
+  function xPlayer(target) {
+    if (!(target instanceof Element)) return null;
+    const candidate = target.closest('[data-testid="videoComponent"]') ?? target.closest('[data-testid="videoPlayer"]');
+    return candidate instanceof HTMLElement && candidate.querySelector("video") instanceof HTMLVideoElement ? candidate : null;
+  }
+
+  function playerFor(target) {
+    if (youtube) return document.querySelector("#movie_player");
+    if (privateXPage()) return null;
+    const player = xPlayer(target) ?? hoveredPlayer;
+    if (!player?.isConnected) return null;
+    const bounds = player.getBoundingClientRect();
+    return bounds.width > 0 && bounds.height > 0 && bounds.bottom > 0 && bounds.right > 0 && bounds.top < window.innerHeight && bounds.left < window.innerWidth ? player : null;
+  }
+
+  function fullscreenButton(target) {
+    if (!(target instanceof Element)) return null;
+    if (youtube) return target.closest("#movie_player .ytp-fullscreen-button");
+    const button = target.closest('button, [role="button"]');
+    if (!button || !xPlayer(button)) return null;
+    const label = button.getAttribute("aria-label") ?? button.getAttribute("title") ?? "";
+    return /^(?:(?:enter|exit|toggle)(?: video)?\s+)?full\s*screen(?: mode)?(?:\s*\(f\))?$/i.test(label) ? button : null;
+  }
 
   function editing(target) {
     return target instanceof Element && Boolean(target.closest(
@@ -41,12 +72,11 @@
     if (notify) signal(false);
   }
 
-  function enter() {
-    const player = document.querySelector("#movie_player");
+  function enter(player, control) {
     if (!(player instanceof HTMLElement) || !(player.querySelector("video") instanceof HTMLVideoElement) || document.fullscreenElement) return false;
     if (typeof player.showPopover !== "function" || player.matches(":popover-open")) return false;
-    const button = player.querySelector(".ytp-fullscreen-button");
-    const observer = new MutationObserver(() => { if (!player.isConnected) exit(); });
+    const button = control ?? (youtube ? player.querySelector(".ytp-fullscreen-button") : null);
+    const observer = new MutationObserver(() => { if (!player.isConnected || privateXPage()) exit(); });
     saved = {
       player, button, observer, popover: player.getAttribute("popover"),
       scrollX: window.scrollX, scrollY: window.scrollY,
@@ -73,9 +103,9 @@
     return true;
   }
 
-  function toggle() {
+  function toggle(player, control) {
     if (saved) { exit(); return true; }
-    return enter();
+    return enter(player, control);
   }
 
   function consume(event) {
@@ -85,6 +115,7 @@
 
   window.addEventListener("keydown", event => {
     if (!event.isTrusted) return;
+    if (privateXPage()) { exit(); return; }
     const key = event.key.toLowerCase();
     if (event.repeat && swallowed.has(key)) {
       consume(event);
@@ -96,7 +127,7 @@
       if (!event.repeat) exit();
       return;
     }
-    if (key === "t" && saved && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !editing(event.target)) {
+    if (youtube && key === "t" && saved && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && !editing(event.target)) {
       // Let YouTube receive the original trusted event after restoring its layout.
       if (!event.repeat) exit();
       return;
@@ -106,7 +137,7 @@
       if (swallowed.has(key)) consume(event);
       return;
     }
-    if (toggle()) {
+    if (toggle(playerFor(event.target))) {
       swallowed.add(key);
       consume(event);
     }
@@ -120,25 +151,36 @@
 
   window.addEventListener("click", event => {
     if (!event.isTrusted) return;
+    if (privateXPage()) { exit(); return; }
     if (event.button || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (saved && event.target instanceof Element && event.target.closest("#movie_player .ytp-size-button")) {
+    if (youtube && saved && event.target instanceof Element && event.target.closest("#movie_player .ytp-size-button")) {
       exit();
       return;
     }
-    if (!(event.target instanceof Element) || !event.target.closest("#movie_player .ytp-fullscreen-button")) return;
-    if (toggle()) consume(event);
+    const button = fullscreenButton(event.target);
+    if (button && toggle(playerFor(button), button)) consume(event);
   }, true);
 
   window.addEventListener("dblclick", event => {
     if (!event.isTrusted) return;
+    if (privateXPage()) { exit(); return; }
     if (event.button || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (!(event.target instanceof Element) || !event.target.matches("#movie_player video, #movie_player .html5-video-container")) return;
-    if (toggle()) consume(event);
+    if (!(event.target instanceof Element)) return;
+    if (youtube && !event.target.matches("#movie_player video, #movie_player .html5-video-container")) return;
+    if (x && event.target.closest('button, [role="button"], [role="slider"], input, textarea, a')) return;
+    if (toggle(playerFor(event.target))) consume(event);
   }, true);
 
   window.addEventListener("blur", () => swallowed.clear());
   window.addEventListener("pagehide", () => exit());
   window.addEventListener("yt-navigate-start", () => exit(), true);
+  if (x) {
+    window.addEventListener("pointerover", event => {
+      if (!event.isTrusted) return;
+      hoveredPlayer = privateXPage() ? null : xPlayer(event.target);
+    }, true);
+    window.addEventListener("popstate", () => exit());
+  }
   // Reset stale state without sending page content or account data.
   signal(false);
 })();

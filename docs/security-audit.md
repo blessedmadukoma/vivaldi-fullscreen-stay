@@ -32,3 +32,9 @@ The CSS tests model Vivaldi's protected interface structure. The hardened helper
 4. GitHub, [“Workflow configuration options for code scanning”](https://docs.github.com/en/code-security/reference/code-scanning/workflow-configuration-options).
 
 Verification at this revision: 24 local unit/policy/packaging tests, five Chromium browser tests, CodeQL with zero open alerts, zero npm advisories, and clean staged/history secret scans. A negative control with a generated, non-functional credential was rejected by Gitleaks. The only exception is the exact public extension identity key in `extension/manifest.json`. Release builds require clean committed source and an exact file allow-list.
+
+## Scoped X update — 8 November 2026
+
+Version 1.2.0 adds only `https://x.com/*` to the existing YouTube match. Installing it therefore needs approval for the new site access. No all-sites match, new browser API permission, iframe access, external messaging, storage or network code is added. Known X private routes cannot activate the indicator. A valid same-origin private route can always clear it, so SPA navigation cannot leave a stale fullscreen badge.
+
+The X adapter uses the selected or hovered visible video component. Input fields, synthetic events, lookalike domains and off-screen players are rejected. The worker still accepts only a fixed message type and a boolean. Local validation: 28 unit/policy/packaging tests and seven isolated Chromium browser tests pass. Live X validation is pending; these fixtures do not prove that every X layout or streaming provider is supported.

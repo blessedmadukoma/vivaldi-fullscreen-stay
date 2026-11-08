@@ -14,17 +14,21 @@ const fixture=`<!doctype html><title>Fixture video - YouTube</title>
 function theatre(){document.querySelector('ytd-watch-flexy').toggleAttribute('theater');}
 window.addEventListener('keydown',e=>{if(e.key==='t'&&!e.defaultPrevented)theatre();});
 document.querySelector('.ytp-size-button').addEventListener('click',theatre);</script>`;
+const xFixture=`<!doctype html><title>X video fixture</title><style>[data-testid="videoComponent"]{position:relative;width:480px;height:270px}video{width:100%;height:100%}[role="button"]{position:absolute;bottom:0;right:0;background:white}</style>
+<input aria-label="Search"><div data-testid="videoComponent" id="x-one"><video></video><div role="button" tabindex="0" aria-label="Fullscreen">Expand</div></div>
+<div data-testid="videoComponent" id="x-two"><video></video><div role="button" tabindex="0" aria-label="Fullscreen">Expand</div></div>
+<script>window.nativeFullscreenCalls=0;document.querySelectorAll('[role="button"]').forEach(el=>el.addEventListener('click',()=>window.nativeFullscreenCalls++));</script>`;
 
 let context,worker,profile;
 test.beforeEach(async()=>{
   profile=fs.mkdtempSync(path.join(os.tmpdir(),'vfs-security-'));
   context=await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true,args:[`--disable-extensions-except=${path.join(root,'extension')}`,`--load-extension=${path.join(root,'extension')}`]});
   [worker]=context.serviceWorkers();if(!worker)worker=await context.waitForEvent('serviceworker');
-  await context.route('**/*',route=>route.fulfill({contentType:'text/html',body:fixture}));
+  await context.route('**/*',route=>route.fulfill({contentType:'text/html',body:new URL(route.request().url()).hostname==='x.com'?xFixture:fixture}));
 });
 test.afterEach(async()=>{await context?.close();fs.rmSync(profile,{recursive:true,force:true});});
 async function pageAt(url='https://www.youtube.com/watch?v=fixture'){
-  const page=await context.newPage();await page.goto(url);await page.locator('#movie_player').waitFor();return page;
+  const page=await context.newPage();await page.goto(url);await page.locator('video').first().waitFor();return page;
 }
 async function badge(){return worker.evaluate(async()=>{const [tab]=await chrome.tabs.query({active:true});return chrome.action.getBadgeText({tabId:tab.id});});}
 
@@ -75,4 +79,23 @@ test('Browser CSS needs the protected extension badge AND active YouTube origin'
   await page.locator('.ExtensionIcon').evaluate(el=>{const badge=document.createElement('span');badge.className='button-badge';badge.textContent='FS';el.appendChild(badge);});
   expect(await position()).toBe('fixed');
   await page.locator('webview').evaluate(el=>el.setAttribute('src','https://www.youtube.com.evil.example/'));expect(await position()).not.toBe('fixed');
+  await page.locator('webview').evaluate(el=>el.setAttribute('src','https://x.com/example/status/1'));expect(await position()).toBe('fixed');
+  await page.locator('webview').evaluate(el=>el.setAttribute('src','https://x.com.evil.example/'));expect(await position()).not.toBe('fixed');
+});
+
+test('X expands the selected player without running its native fullscreen handler',async()=>{
+  const page=await pageAt('https://x.com/example/status/1');
+  await page.locator('#x-two').getByRole('button',{name:'Fullscreen',exact:true}).click();
+  await expect(page.locator('#x-two')).toHaveAttribute('data-vfs-player');await expect(page.locator('#x-one')).not.toHaveAttribute('data-vfs-player');
+  await expect.poll(badge).toBe('FS');expect(await page.evaluate(()=>window.nativeFullscreenCalls)).toBe(0);
+  await page.keyboard.press('Escape');await expect.poll(badge).toBe('');await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+});
+
+test('X rejects synthetic fullscreen clicks, typing and private-route activation',async()=>{
+  const page=await pageAt('https://x.com/example/status/1');
+  await page.locator('#x-one').getByRole('button',{name:'Fullscreen'}).evaluate(el=>el.click());
+  expect(await badge()).toBe('');await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+  await page.getByRole('textbox',{name:'Search'}).fill('f');await page.getByRole('textbox',{name:'Search'}).press('f');expect(await badge()).toBe('');
+  await page.goto('https://x.com/i/chat');await page.locator('#x-one').getByRole('button',{name:'Fullscreen'}).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');expect(await badge()).toBe('');
 });

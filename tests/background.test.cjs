@@ -52,3 +52,12 @@ test('Per-tab state is isolated and action API failure is contained',async()=>{
   await f.send({...f.message,expanded:false});assert.equal(f.badges.get(7),'');assert.equal(f.badges.get(8),'FS');
   f.chrome.action.setBadgeText=async()=>{throw new Error('Tab closed');};assert.equal((await f.send()).ok,false);
 });
+
+test('X accepts public video state but private routes can only clear it',async()=>{
+  const f=fixture();const source={...f.sender,origin:'https://x.com',url:'https://x.com/example/status/1'};
+  assert.equal((await f.send(f.message,source)).ok,true);assert.equal(f.badges.get(7),'FS');
+  const privateSource={...source,url:'https://x.com/i/chat'};
+  assert.equal(await f.send(f.message,privateSource),null);
+  assert.equal((await f.send({...f.message,expanded:false},privateSource)).ok,true);assert.equal(f.badges.get(7),'');
+  assert.equal(await f.send(f.message,{...source,url:'https://x.com.evil.example/'}),null);
+});

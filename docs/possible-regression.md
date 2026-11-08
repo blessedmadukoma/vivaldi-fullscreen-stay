@@ -27,6 +27,14 @@ Vivaldi's March 2021 changelog lists VB-76734 as fixed. A February 2021 user rep
 
 The workaround in this repository avoids the native video fullscreen transition. It is not evidence that Vivaldi's underlying fault is fixed.
 
+## Scope update — 8 November 2026
+
+The reporter also observes the same browser-fullscreen exit on X.com (formerly Twitter) and while streaming. These are user-reported observations, not an independent confirmation that all players share one cause. The installed 1.1.0 workaround applies only to YouTube, so it cannot prevent the original browser fault on those other sites.
+
+An additional public X example is `https://x.com/SpaceX/status/2118870818021097862`. To test, put Vivaldi into native Mac fullscreen first, use the player’s fullscreen button, then leave video fullscreen with Esc or that button. The expected result is that Vivaldi stays in its Mac fullscreen Space. Record whether the whole browser leaves it.
+
+The X page and its video were opened successfully, but its fullscreen control was not exposed through the native control interface. Live validation of the new X handler remains pending. No private account pages or streaming-session links are included in this report.
+
 ## References
 
 1. Vivaldi, [“Tab, menu and Speed Dial fixes — Vivaldi Browser snapshot 2218.3”](https://vivaldi.com/blog/desktop/tab-menu-and-speed-dial-fixes-vivaldi-browser-snapshot-2218-3/), 5 March 2021.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 — 8 November 2026
+
+- Add a scoped X.com (formerly Twitter) player handler.
+- Require approval for the added X.com site access. No all-sites permission is requested.
+- Keep private X routes inactive and clear state after navigation.
+- Retain the browser-owned badge and trusted-input checks.
+
 ## 1.1.0 — 7 November 2026
 
 Security update. Replace both the extension and companion CSS.

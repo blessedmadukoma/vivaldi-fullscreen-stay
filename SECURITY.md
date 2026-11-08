@@ -8,17 +8,17 @@ Do not mix the old CSS with the new extension. Remove the old `youtube-fullscree
 
 ## Trust boundaries
 
-- The content script is restricted to the top-level `https://www.youtube.com/` origin and runs in Chrome's isolated world.
+- The content script is restricted to the top-level `https://www.youtube.com/` and `https://x.com/` origins and runs in Chrome's isolated world.
 - Keyboard, click and double-click actions require a browser-trusted event. Page JavaScript cannot activate this extension by dispatching an event.
 - The worker accepts only a fixed message type and a boolean. It checks the browser-provided extension ID, frame, document lifecycle, tab ID and exact origin. It can change only this extension's own per-tab badge.
-- The browser appearance rule requires that badge and an active YouTube webview. A page title or page-created DOM element cannot set the browser-owned badge.
+- The browser appearance rule requires that badge and an active allowed-site webview. A page title or page-created DOM element cannot set the browser-owned badge.
 - The extension has no cookie, history, storage, debugger, native-messaging, file, download or management permission. It neither sends network requests nor loads remote code. There are no runtime dependencies.
 
 The event-driven worker has no polling or keep-alive timer. It wakes for state changes and navigation. This audit did not measure battery consumption.
 
 ## What this does not guarantee
 
-An extension with YouTube site access can read and change that site's DOM. The reviewed code uses it for the player and controls; a malicious future update could misuse the same access. The extension CSP does not block every possible content-script network mechanism. Permission restrictions, policy checks, code review and the release source must be considered together. \[1\], \[2\]
+An extension with YouTube or X site access can read and change those sites’ DOM. Version 1.2.0 adds X access and therefore requires explicit approval when updating the installed helper. X private routes cannot activate the badge; they can always clear it after navigation. The reviewed code uses it for the player and controls; a malicious future update could misuse the same access. The extension CSP does not block every possible content-script network mechanism. Permission restrictions, policy checks, code review and the release source must be considered together. \[1\], \[2\]
 
 No source audit or scanner can prove that a browser, operating system, publisher account or future release is free of vulnerabilities. This is a scoped code audit, not a certification against a named compliance standard. Keep Vivaldi and macOS updated. No Web Store review has been performed.
 

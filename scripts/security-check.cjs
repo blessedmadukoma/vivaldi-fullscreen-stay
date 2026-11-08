@@ -64,7 +64,7 @@ function main() {
   assert(/^\d+(\.\d+){1,3}$/.test(manifest.version),'Invalid version');
   assert.deepEqual(manifest.background,{service_worker:'background.js'});
   assert.equal(manifest.content_scripts.length,1);
-  assert.deepEqual(manifest.content_scripts[0],{matches:['https://www.youtube.com/*'],run_at:'document_start',js:['content.js'],css:['player.css'],all_frames:false,world:'ISOLATED'});
+  assert.deepEqual(manifest.content_scripts[0],{matches:['https://www.youtube.com/*','https://x.com/*'],run_at:'document_start',js:['content.js'],css:['player.css'],all_frames:false,world:'ISOLATED'});
   assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'none'; connect-src 'none'; base-uri 'none'");
   const der=Buffer.from(manifest.key,'base64');
   const publicKey=crypto.createPublicKey({key:der,format:'der',type:'spki'});
@@ -74,7 +74,7 @@ function main() {
   for(const file of ['content.js','background.js']) checkSource(fs.readFileSync(path.join(root,'extension',file),'utf8'),file);
   const css=fs.readFileSync(path.join(root,'vivaldi-ui/youtube-fullscreen.css'),'utf8');checkCss(css);
   const clean=css.replace(/\/\*[\s\S]*?\*\//g,'').trim();
-  const selector=`@scope (#browser.fullscreen:has(.ExtensionIcon.${id} .button-badge):has(.webpageview.active webview[src^="https://www.youtube.com/"]))`;
+  const selector=`@scope (#browser.fullscreen:has(.ExtensionIcon.${id} .button-badge):has(.webpageview.active webview:is([src^="https://www.youtube.com/"], [src^="https://x.com/"])))`;
   assert(clean.startsWith(selector+' {'),'Browser CSS must use the exact extension badge and active YouTube origin');
   let depth=0;
   for(let i=clean.indexOf('{');i<clean.length;i++){
