@@ -23,6 +23,14 @@ const streamFixture=`<!doctype html><title>Stream fixture</title><style>.plyr{po
 <script>window.nativeFullscreenCalls=0;document.querySelector('button').addEventListener('click',()=>window.nativeFullscreenCalls++);</script>`;
 const parentFixture=`<!doctype html><title>Parent fixture</title><iframe title="Selected stream" src="https://middle.example/embed" style="width:500px;height:300px"></iframe><iframe title="Other stream" src="https://player.example/other" style="width:500px;height:300px"></iframe>`;
 const middleFixture=`<!doctype html><title>Middle fixture</title><iframe title="Video" src="https://player.example/embed" style="width:480px;height:270px"></iframe>`;
+const shadowFixture=`<!doctype html><title>Shadow stream fixture</title><div id="host"></div><script>
+const shadow=document.querySelector('#host').attachShadow({mode:'open'});
+const siteSheet=new CSSStyleSheet();siteSheet.replaceSync(':host{display:block}');shadow.adoptedStyleSheets=[siteSheet];
+shadow.innerHTML='<div class="stream"><iframe title="Shadow stream" src="https://middle.example/embed" style="width:500px;height:300px"></iframe><div><button><span>Fullscreen</span></button></div></div><input aria-label="Shadow search"><iframe title="Unrelated frame" src="https://player.example/other" style="width:300px;height:200px"></iframe>';
+window.nativeFullscreenCalls=0;shadow.querySelector('button').addEventListener('click',()=>window.nativeFullscreenCalls++);
+</script>`;
+const outerShadowFixture=shadowFixture.replace('https://middle.example/embed','https://shadow-player.example/embed');
+const videoJsFixture=`<!doctype html><title>Responsive Video.js fixture</title><style>html,body{width:100%;height:100%;margin:0}.video-js{position:relative;width:100%;height:100%}video{width:100%;height:100%}button{position:absolute;bottom:0;right:0}</style><div class="video-js"><video></video><button class="vjs-fullscreen-control" title="Fullscreen"><span>Fullscreen</span></button></div><script>window.nativeFullscreenCalls=0;document.querySelector('button').addEventListener('click',()=>window.nativeFullscreenCalls++);</script>`;
 
 let context,worker,profile;
 test.beforeEach(async()=>{
@@ -31,7 +39,7 @@ test.beforeEach(async()=>{
   [worker]=context.serviceWorkers();if(!worker)worker=await context.waitForEvent('serviceworker');
   await context.route('**/*',route=>{
     const host=new URL(route.request().url()).hostname;
-    const body=host==='x.com'?xFixture:host==='parent.example'?parentFixture:host==='middle.example'?middleFixture:host==='player.example'?streamFixture:host==='native.example'?'<!doctype html><title>Native video</title><main><p>Ordinary text selection</p><input aria-label="Search"><video controls style="width:480px;height:270px"></video></main>':fixture;
+    const body=host==='x.com'?xFixture:host==='parent.example'?parentFixture:host==='middle.example'?middleFixture:host==='player.example'?streamFixture:host==='shadow.example'?shadowFixture:host==='outer-shadow.example'?outerShadowFixture:host==='shadow-player.example'?videoJsFixture:host==='native.example'?'<!doctype html><title>Native video</title><main><p>Ordinary text selection</p><input aria-label="Search"><video controls style="width:480px;height:270px"></video></main>':fixture;
     return route.fulfill({contentType:'text/html',body});
   });
 });
@@ -161,4 +169,41 @@ test('A native video without a player library expands on trusted F and restores 
     await page.keyboard.press('Escape');await expect.poll(badge).toBe('');
     await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
   }
+});
+
+test('A nested player expands through an open shadow root and restores the site stylesheet',async()=>{
+  const page=await context.newPage();await page.goto('https://shadow.example/watch');
+  const parent=page.frameLocator('iframe[title="Shadow stream"]');const child=parent.frameLocator('iframe[title="Video"]');
+  const sheets=()=>page.locator('#host').evaluate(h=>h.shadowRoot.adoptedStyleSheets.length);
+  expect(await sheets()).toBe(1);
+  await child.getByRole('button',{name:'Enter fullscreen'}).click();await expect.poll(badge).toBe('FS');
+  await expect(page.locator('iframe[title="Shadow stream"]')).toHaveAttribute('data-vfs-player');
+  await expect.poll(sheets).toBe(2);
+  const size=await child.locator('video').boundingBox();expect(size.width).toBe(page.viewportSize().width);expect(size.height).toBe(page.viewportSize().height);
+  await page.keyboard.press('Escape');await expect.poll(badge).toBe('');await expect.poll(sheets).toBe(1);
+  await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+});
+
+test('A text-labelled shadow fullscreen button expands its iframe and child keys can exit',async()=>{
+  const page=await context.newPage();await page.goto('https://outer-shadow.example/watch');
+  const frame=page.frameLocator('iframe[title="Shadow stream"]');await frame.locator('video').waitFor();
+  for(const key of ['Escape','f']){
+    await page.getByRole('button',{name:'Fullscreen',exact:true}).click();await expect.poll(badge).toBe('FS');
+    await expect(page.locator('iframe[title="Shadow stream"]')).toHaveAttribute('data-vfs-player');
+    expect(await page.evaluate(()=>window.nativeFullscreenCalls)).toBe(0);
+    const size=await frame.locator('video').boundingBox();expect(size.width).toBe(page.viewportSize().width);expect(size.height).toBe(page.viewportSize().height);
+    await frame.locator('video').click({position:{x:100,y:80}});await page.keyboard.press(key);await expect.poll(badge).toBe('');
+    await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+    await expect(page.locator('iframe[title="Shadow stream"]')).not.toHaveAttribute('data-vfs-player');
+  }
+});
+
+test('Shadow input and synthetic controls remain inactive; expansion adds no requests',async()=>{
+  const page=await context.newPage();await page.goto('https://outer-shadow.example/watch');
+  await page.frameLocator('iframe[title="Shadow stream"]').locator('video').waitFor();
+  await page.getByRole('textbox',{name:'Shadow search'}).press('f');await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+  await page.getByRole('button',{name:'Fullscreen',exact:true}).evaluate(b=>b.click());expect(await badge()).toBe('');
+  const requests=[];page.on('request',r=>requests.push(r.url()));
+  await page.getByRole('button',{name:'Fullscreen',exact:true}).click();await expect.poll(badge).toBe('FS');
+  await page.keyboard.press('Escape');await expect.poll(badge).toBe('');expect(requests).toEqual([]);
 });

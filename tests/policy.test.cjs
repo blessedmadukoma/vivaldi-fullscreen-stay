@@ -14,3 +14,7 @@ test('Security policy accepts only the reviewed content-script browser API',()=>
 test('CSS policy rejects remote resources and escaped resource names',()=>{
   for(const css of ['@import "https://example.invalid/a.css";','video{background:url(https://example.invalid)}','video{background:image-set("https://example.invalid/a.png" 1x)}','video{background:u\\72l(https://example.invalid)}'])assert.throws(()=>checkCss(css));
 });
+test('Shadow styles must be fixed literals without external resources',()=>{
+ assert.doesNotThrow(()=>checkSource('sheet.replaceSync(`[data-vfs-player]{position:fixed!important}`)','content.js'));
+ for(const code of ['sheet.replaceSync(pageValue)','sheet.replaceSync(`video{background:url(https://example.invalid/a.png)}`)','sheet.replaceSync(`video{color:${pageValue}}`)'])assert.throws(()=>checkSource(code,'content.js'));
+});

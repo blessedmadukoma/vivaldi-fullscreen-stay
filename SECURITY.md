@@ -12,6 +12,7 @@ Do not mix the old CSS with the new extension. Remove the old `youtube-fullscree
 - Keyboard, click and double-click actions require a browser-trusted event. Page JavaScript cannot activate this extension by dispatching an event.
 - The worker accepts only a fixed message type, boolean and random activation ID. It checks the browser-provided extension ID, frame, document lifecycle, tab ID, HTTP(S) scheme and matching sender origin. It relays layout state only within that sender's tab and changes its own per-tab badge.
 - Content scripts accept relays only from their own extension worker. A relay can expand only a visible iframe in a document's focused frame chain. There is no page `postMessage` bridge, main-world script or override of the native Fullscreen API. \[4\]
+- Open shadow roots use the original trusted event path and nested focus state. A fixed local stylesheet supplies player geometry inside the shadow root and is removed on exit. The policy check rejects dynamic CSS literals and external CSS resources. A child can send a clear for parent-started expansion; unrelated frame navigation does not send that clear.
 - The browser appearance rule requires that badge and an active HTTP(S) webview. A page title or page-created DOM element cannot set the browser-owned badge.
 - The extension has no cookie, history, storage, debugger, native-messaging, file, download or management permission. It neither sends network requests nor loads remote code. There are no runtime dependencies.
 
