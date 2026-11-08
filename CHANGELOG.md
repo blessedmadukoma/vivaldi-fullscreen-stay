@@ -6,6 +6,8 @@
 - Require approval for the added X.com site access. No all-sites permission is requested.
 - Keep private X routes inactive and clear state after navigation.
 - Retain the browser-owned badge and trusted-input checks.
+- Expand X's outer player wrapper to keep its video and controls together.
+- Restore the page safely if the extension runtime becomes unavailable.
 
 ## 1.1.0 — 7 November 2026
 

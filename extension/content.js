@@ -15,7 +15,7 @@
 
   function xPlayer(target) {
     if (!(target instanceof Element)) return null;
-    const candidate = target.closest('[data-testid="videoComponent"]') ?? target.closest('[data-testid="videoPlayer"]');
+    const candidate = target.closest('[data-testid="videoPlayer"]') ?? target.closest('[data-testid="videoComponent"]');
     return candidate instanceof HTMLElement && candidate.querySelector("video") instanceof HTMLVideoElement ? candidate : null;
   }
 
@@ -45,7 +45,14 @@
 
   function signal(expanded) {
     const state = saved;
-    chrome.runtime.sendMessage({ type: "vfs:state", expanded }).then(result => {
+    let request;
+    try {
+      request = chrome.runtime.sendMessage({ type: "vfs:state", expanded });
+    } catch {
+      if (expanded && saved === state) exit(false);
+      return;
+    }
+    request.then(result => {
       if (expanded && saved === state && result?.ok !== true) exit(false);
     }).catch(() => { if (expanded && saved === state) exit(false); });
   }

@@ -30,7 +30,7 @@ function fixture(options={}){
  const window={innerWidth:1280,innerHeight:720,scrollX:10,scrollY:20,scrollTo:(x,y)=>{window.scrollX=x;window.scrollY=y;},addEventListener:(n,f)=>(listeners[n]??=[]).push(f)};
  window.top=options.frame ? {} : window;
  const messages=[];
- const chrome={runtime:{sendMessage(message){messages.push(JSON.parse(JSON.stringify(message)));return Promise.resolve({ok:options.ack!==false});}}};
+ const chrome={runtime:{sendMessage(message){if(options.runtimeClosed)throw new Error('Context closed');messages.push(JSON.parse(JSON.stringify(message)));return Promise.resolve({ok:options.ack!==false});}}};
  const location={origin:options.origin??'https://www.youtube.com',pathname:options.pathname??'/watch'};
  const observers=[];
  class MutationObserver{constructor(callback){this.callback=callback;observers.push(this);}observe(){this.connected=true;}disconnect(){this.connected=false;}}
@@ -77,4 +77,7 @@ test('X ignores private routes and stale off-screen players',()=>{
 });
 test('X private SPA navigation exits and only sends a clear',()=>{
  const f=fixture({origin:'https://x.com'});f.key('f');assert(f.active());f.location.pathname='/i/chat';f.key('Escape');assert(!f.active());assert.equal(f.messages.at(-1).expanded,false);
+});
+test('An invalidated extension context rolls back without throwing from the input handler',()=>{
+ const f=fixture({runtimeClosed:true});assert.doesNotThrow(()=>f.key('f'));assert(!f.active());assert(!f.player.open);
 });

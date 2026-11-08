@@ -33,7 +33,7 @@ The reporter also observes the same browser-fullscreen exit on X.com (formerly T
 
 An additional public X example is `https://x.com/SpaceX/status/2118870818021097862`. To test, put Vivaldi into native Mac fullscreen first, use the player’s fullscreen button, then leave video fullscreen with Esc or that button. The expected result is that Vivaldi stays in its Mac fullscreen Space. Record whether the whole browser leaves it.
 
-The X page and its video were opened successfully, but its fullscreen control was not exposed through the native control interface. Live validation of the new X handler remains pending. No private account pages or streaming-session links are included in this report.
+The 1.2.0 workaround was checked on that public video in Vivaldi 8.3.4191.30. The fullscreen button and double-click expanded the player. Playback stayed expanded, and F and Esc restored the page while retaining native Mac fullscreen. This tests the workaround, not the browser fault with the workaround disabled. No private account pages or streaming-session links are included in this report. This repository update has not been sent as a follow-up to ticket VB-133154.
 
 ## References
 

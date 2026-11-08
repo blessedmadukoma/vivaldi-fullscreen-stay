@@ -14,9 +14,9 @@ const fixture=`<!doctype html><title>Fixture video - YouTube</title>
 function theatre(){document.querySelector('ytd-watch-flexy').toggleAttribute('theater');}
 window.addEventListener('keydown',e=>{if(e.key==='t'&&!e.defaultPrevented)theatre();});
 document.querySelector('.ytp-size-button').addEventListener('click',theatre);</script>`;
-const xFixture=`<!doctype html><title>X video fixture</title><style>[data-testid="videoComponent"]{position:relative;width:480px;height:270px}video{width:100%;height:100%}[role="button"]{position:absolute;bottom:0;right:0;background:white}</style>
-<input aria-label="Search"><div data-testid="videoComponent" id="x-one"><video></video><div role="button" tabindex="0" aria-label="Fullscreen">Expand</div></div>
-<div data-testid="videoComponent" id="x-two"><video></video><div role="button" tabindex="0" aria-label="Fullscreen">Expand</div></div>
+const xFixture=`<!doctype html><title>X video fixture</title><style>[data-testid="videoPlayer"]{position:relative;width:480px;height:270px}[data-testid="videoComponent"]{position:relative;width:100%;height:100%}video{width:100%;height:100%}[role="button"]{position:absolute;bottom:0;right:0;background:white}</style>
+<input aria-label="Search"><div data-testid="videoPlayer" id="x-one"><div data-testid="videoComponent"><video></video></div><div role="button" tabindex="0" aria-label="Fullscreen">Expand</div></div>
+<div data-testid="videoPlayer" id="x-two"><div data-testid="videoComponent"><video></video></div><div role="button" tabindex="0" aria-label="Fullscreen">Expand</div></div>
 <script>window.nativeFullscreenCalls=0;document.querySelectorAll('[role="button"]').forEach(el=>el.addEventListener('click',()=>window.nativeFullscreenCalls++));</script>`;
 
 let context,worker,profile;
@@ -88,6 +88,7 @@ test('X expands the selected player without running its native fullscreen handle
   await page.locator('#x-two').getByRole('button',{name:'Fullscreen',exact:true}).click();
   await expect(page.locator('#x-two')).toHaveAttribute('data-vfs-player');await expect(page.locator('#x-one')).not.toHaveAttribute('data-vfs-player');
   await expect.poll(badge).toBe('FS');expect(await page.evaluate(()=>window.nativeFullscreenCalls)).toBe(0);
+  const size=await page.locator('#x-two video').boundingBox();expect(size.width).toBe(page.viewportSize().width);expect(size.height).toBe(page.viewportSize().height);
   await page.keyboard.press('Escape');await expect.poll(badge).toBe('');await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
 });
 
