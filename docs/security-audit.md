@@ -57,3 +57,11 @@ The updated 2.0.0 release addresses an embedded Video.js player inside BC.Game's
 The shadow stylesheet is a fixed CSS literal. It has no imports, resource URLs or interpolation. Source policy tests enforce those restrictions. The helper adopts this stylesheet only within the selected shadow root, preserves other adopted stylesheets and removes its own on exit. \[7\] There are no new permissions, message fields, network or storage capabilities. The existing all-site access remains a material capability and retains the limits described above.
 
 Local validation passes 34 unit/policy/packaging tests and 14 Chromium browser tests. New cases cover nested shadow frames, text-labelled iframe controls, child Esc/F exits, stylesheet cleanup, input retargeting, synthetic controls and no additional page requests. The user confirmed that both Esc and F exits on the live match player retain native Mac fullscreen. No account information, private match URL or streaming token is included in this record.
+
+## Project rename and performance review — 8 November 2026
+
+The project is now Vivaldi Fullscreen Stay. The repository, package name, extension title, companion CSS and release archive use that name. The extension identity key, ID, version 2.0.0, permissions and message schema are unchanged.
+
+The active observer now watches the player's ancestor chain with `childList` only. It checks disconnection or a closed popover and can refresh the watched chain after a DOM move. Same-document navigation clears the view through an event handler. The code adds no polling or background timer. Policy checks reject timers, animation loops, computed object keys and broad subtree observers in production code.
+
+Validation passes 35 unit/policy/packaging tests and 16 Chromium browser tests. Added behaviour checks cover removal of a player ancestor and same-document navigation to a private X route. Secret and dependency scans are clear. The [performance report](performance.md) records controlled CPU measurements: the revised helper had zero observer callbacks during 54,020 unrelated DOM updates and sent no state messages during the measured steady playback. CPU ranges overlapped the baseline. Battery discharge and battery runtime were not measured because the Mac was connected to power.

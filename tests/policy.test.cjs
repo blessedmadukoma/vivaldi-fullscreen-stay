@@ -18,3 +18,6 @@ test('Shadow styles must be fixed literals without external resources',()=>{
  assert.doesNotThrow(()=>checkSource('sheet.replaceSync(`[data-vfs-player]{position:fixed!important}`)','content.js'));
  for(const code of ['sheet.replaceSync(pageValue)','sheet.replaceSync(`video{background:url(https://example.invalid/a.png)}`)','sheet.replaceSync(`video{color:${pageValue}}`)'])assert.throws(()=>checkSource(code,'content.js'));
 });
+test('Production code cannot add polling, animation loops or broad subtree observers',()=>{
+ for(const code of ['setInterval(()=>{},1000)','setTimeout(()=>{},10)','requestAnimationFrame(()=>{})','requestIdleCallback(()=>{})','observer.observe(document,{childList:true,subtree:true})','observer.observe(document,{childList:true,"subtree":true})','observer.observe(document,{childList:true,["sub"+"tree"]:true})'])assert.throws(()=>checkSource(code,'content.js'));
+});

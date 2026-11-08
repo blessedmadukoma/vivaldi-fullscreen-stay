@@ -2,6 +2,10 @@
 
 ## 2.0.0 — 8 November 2026
 
+- Rename the project to Vivaldi Fullscreen Stay. Keep the extension ID and version.
+- Observe the player's ancestors directly and clear same-document navigation through an event. Avoid callbacks for unrelated page updates.
+- Add controlled CPU measurements and source checks against polling and broad subtree observers.
+
 - Follow trusted input and iframe focus through open shadow roots.
 - Recognise text-labelled fullscreen buttons beside an embedded player.
 - Let the focused child frame exit a view started by its parent.

@@ -17,7 +17,7 @@ ALLOWED = [
     'README.md', 'LICENSE', 'CHANGELOG.md', 'SECURITY.md',
     'extension/manifest.json', 'extension/content.js', 'extension/background.js', 'extension/player.css',
     'extension/icons/16.png', 'extension/icons/32.png', 'extension/icons/48.png', 'extension/icons/128.png',
-    'vivaldi-ui/youtube-fullscreen.css', 'docs/possible-regression.md', 'docs/security-audit.md',
+    'vivaldi-ui/vivaldi-fullscreen.css', 'docs/possible-regression.md', 'docs/security-audit.md', 'docs/performance.md',
 ]
 FILES = [ROOT / name for name in ALLOWED]
 for directory in ['extension', 'vivaldi-ui', 'docs']:
@@ -30,12 +30,12 @@ for directory in ['extension', 'vivaldi-ui', 'docs']:
             raise SystemExit(f'Unexpected release file: {source.relative_to(ROOT)}')
 OUT = ROOT / 'dist'
 OUT.mkdir(exist_ok=True)
-ARCHIVE = OUT / f'youtube-fullscreen-stay-{VERSION}.zip'
+ARCHIVE = OUT / f'vivaldi-fullscreen-stay-{VERSION}.zip'
 with zipfile.ZipFile(ARCHIVE, 'w', zipfile.ZIP_DEFLATED) as package:
     for source in FILES:
         if any(parent.is_symlink() for parent in [source, *source.parents] if parent.is_relative_to(ROOT)) or source.stat().st_size > 512 * 1024:
             raise SystemExit('Unexpected release file or size')
-        name = (Path(f'youtube-fullscreen-stay-{VERSION}') / source.relative_to(ROOT)).as_posix()
+        name = (Path(f'vivaldi-fullscreen-stay-{VERSION}') / source.relative_to(ROOT)).as_posix()
         entry = zipfile.ZipInfo(name, (2026, 1, 1, 0, 0, 0))
         entry.compress_type = zipfile.ZIP_DEFLATED
         entry.external_attr = 0o100644 << 16

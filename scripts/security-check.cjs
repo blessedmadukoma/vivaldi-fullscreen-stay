@@ -24,13 +24,15 @@ function member(node) {
 
 function checkSource(source, filename) {
   const tree = acorn.parse(source,{ecmaVersion:'latest',sourceType:'script'});
-  const forbidden = new Set(['fetch','XMLHttpRequest','WebSocket','WebTransport','EventSource','Worker','SharedWorker','eval','Function','importScripts','require','localStorage','sessionStorage','indexedDB','cookieStore','caches','Reflect','Proxy','globalThis','console']);
+  const forbidden = new Set(['fetch','XMLHttpRequest','WebSocket','WebTransport','EventSource','Worker','SharedWorker','eval','Function','importScripts','require','localStorage','sessionStorage','indexedDB','cookieStore','caches','Reflect','Proxy','globalThis','console','setTimeout','setInterval','requestAnimationFrame','requestIdleCallback']);
   const properties = new Set(['cookie','cookieStore','credentials','localStorage','sessionStorage','indexedDB','sendBeacon','innerHTML','outerHTML','insertAdjacentHTML','createElement','createElementNS','write','writeln','postMessage','href','src','srcdoc','formAction','ping','assign','replace']);
   const api = filename === 'content.js' ? ['chrome.runtime.sendMessage','chrome.runtime.id','chrome.runtime.onMessage.addListener'] : [
     'chrome.runtime.id','chrome.runtime.onMessage.addListener','chrome.action.setBadgeText',
     'chrome.tabs.onUpdated.addListener','chrome.tabs.onRemoved.addListener','chrome.tabs.sendMessage'
   ];
   walk(tree,(node,parent)=>{
+    if (node.type === 'Property' && node.computed) throw new Error(`${filename}: computed object keys require review`);
+    if (node.type === 'Property' && (node.key.name ?? node.key.value) === 'subtree' && node.value.value === true) throw new Error(`${filename}: subtree observation requires performance review`);
     if (node.type === 'Identifier' && forbidden.has(node.name)) throw new Error(`${filename}: forbidden capability ${node.name}`);
     if (node.type === 'ImportExpression' || node.type === 'WithStatement') throw new Error(`${filename}: dynamic code is forbidden`);
     if (node.type === 'Identifier' && node.name === 'chrome' && !(parent?.type === 'MemberExpression' && parent.object === node)) throw new Error(`${filename}: browser API aliases require security review`);
@@ -78,7 +80,7 @@ function main() {
   assert(publicKey.asymmetricKeyDetails.modulusLength>=2048);
   const id=crypto.createHash('sha256').update(der).digest('hex').slice(0,32).split('').map(c=>String.fromCharCode(97+parseInt(c,16))).join('');
   for(const file of ['content.js','background.js']) checkSource(fs.readFileSync(path.join(root,'extension',file),'utf8'),file);
-  const css=fs.readFileSync(path.join(root,'vivaldi-ui/youtube-fullscreen.css'),'utf8');checkCss(css);
+  const css=fs.readFileSync(path.join(root,'vivaldi-ui/vivaldi-fullscreen.css'),'utf8');checkCss(css);
   const clean=css.replace(/\/\*[\s\S]*?\*\//g,'').trim();
   const selector=`@scope (#browser.fullscreen:has(.ExtensionIcon.${id} .button-badge):has(.webpageview.active webview:is([src^="http://"], [src^="https://"])))`;
   assert(clean.startsWith(selector+' {'),'Browser CSS must use the exact extension badge and active HTTP(S) webview');
