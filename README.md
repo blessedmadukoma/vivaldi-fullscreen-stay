@@ -17,6 +17,8 @@ This workaround expands the existing player inside the browser window. A compani
 
 These changes affect the current Vivaldi profile. They do not edit Vivaldi's application files.
 
+For an in-place update, replace both parts, then click **Reload** on the Fullscreen Stay card in `vivaldi://extensions/`. Restart Vivaldi to load the companion CSS, then refresh video tabs. Use the extension's Reload control as well as restarting so the worker and page scripts use the same revision.
+
 ## Use
 
 Put Vivaldi in macOS fullscreen first, using **Control + Command + F** or the green window button. Open a video on an HTTP or HTTPS page.
@@ -39,7 +41,7 @@ The extension sends no network requests, analytics or remote code and stores no 
 
 Version **1.0.2** was checked on **Vivaldi 8.3.4191.30, macOS 26.7.2, Apple silicon**. The user confirmed stable fullscreen playback and both transitions: **F → T** and **theatre → F → Esc**. The YouTube queue was retained.
 
-YouTube, X and Vivaldi layout changes can require an update. X support was checked live in Vivaldi 8.3.4191.30. The general handler passes isolated tests for ordinary players and nested cross-origin frames. Live streaming validation is pending before release. This does not establish support for every player. Browser-internal pages, local files, opaque/sandboxed frames, closed shadow DOM and unrecognised controls can remain unsupported. No DRM or site security control is bypassed.
+YouTube, X and Vivaldi layout changes can require an update. X support was checked live in Vivaldi 8.3.4191.30. The general handler passes isolated tests for ordinary players and nested cross-origin frames. A live embedded Kwik/Plyr stream was also checked in that Vivaldi version: it stayed expanded during more than 50 seconds of playback, and Esc, F and the player button restored the page while retaining native Mac fullscreen. This does not establish support for every player. Browser-internal pages, local files, opaque/sandboxed frames, closed shadow DOM and unrecognised controls can remain unsupported. No DRM or site security control is bypassed.
 
 The appearance rule requires this extension's protected badge and an active HTTP(S) webview. A page title cannot activate it. It depends on Vivaldi's interface selectors and keeps the tab bar in layout to avoid a repeated show/hide cycle.
 
