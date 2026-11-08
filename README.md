@@ -26,6 +26,7 @@ Put Vivaldi in macOS fullscreen first, using **Control + Command + F** or the gr
 - On YouTube, **F** expands the video. On other sites, focus or hover the video and press **F**, or double-click its video area. **F** or **Esc** restores the page while keeping the browser in macOS fullscreen.
 - Recognised fullscreen buttons also toggle the expanded view. The shared handler recognises common Plyr, Video.js, JW Player and MediaElement controls, plus labelled fullscreen buttons beside a video. Use F or double-click if a site's button is not recognised.
 - For embedded streams, the helper expands the video and its focused parent frames. It does not reload or move the video element.
+- Open shadow roots are supported, including player frames inside a web component. A labelled fullscreen control beside an iframe can expand that iframe; F and Esc still work after focus moves into the stream.
 - On YouTube, **T** or the theatre button leaves the expanded view and passes the original action to YouTube.
 - Entering fullscreen from theatre view and leaving with F or Esc preserves YouTube's existing theatre state.
 
@@ -41,7 +42,7 @@ The extension sends no network requests, analytics or remote code and stores no 
 
 Version **1.0.2** was checked on **Vivaldi 8.3.4191.30, macOS 26.7.2, Apple silicon**. The user confirmed stable fullscreen playback and both transitions: **F → T** and **theatre → F → Esc**. The YouTube queue was retained.
 
-YouTube, X and Vivaldi layout changes can require an update. X support was checked live in Vivaldi 8.3.4191.30. The general handler passes isolated tests for ordinary players and nested cross-origin frames. A live embedded Kwik/Plyr stream was also checked in that Vivaldi version: it stayed expanded during more than 50 seconds of playback, and Esc, F and the player button restored the page while retaining native Mac fullscreen. This does not establish support for every player. Browser-internal pages, local files, opaque/sandboxed frames, closed shadow DOM and unrecognised controls can remain unsupported. No DRM or site security control is bypassed.
+YouTube, X and Vivaldi layout changes can require an update. X support was checked live in Vivaldi 8.3.4191.30. The general handler passes isolated tests for ordinary players, nested cross-origin frames and open shadow roots. The user confirmed Esc and F exits on BC.Game’s live match player. A live embedded Kwik/Plyr stream was also checked in that Vivaldi version: it stayed expanded during more than 50 seconds of playback, and Esc, F and the player button restored the page while retaining native Mac fullscreen. This does not establish support for every player. Browser-internal pages, local files, opaque/sandboxed frames, closed shadow DOM and unrecognised controls can remain unsupported. No DRM or site security control is bypassed.
 
 The appearance rule requires this extension's protected badge and an active HTTP(S) webview. A page title cannot activate it. It depends on Vivaldi's interface selectors and keeps the tab bar in layout to avoid a repeated show/hide cycle.
 

@@ -44,6 +44,12 @@ function checkSource(source, filename) {
     }
   });
   walk(tree,node=>{
+    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' && node.callee.property.name === 'replaceSync') {
+      const value=node.arguments[0];
+      const css=value?.type==='Literal'&&typeof value.value==='string'?value.value:value?.type==='TemplateLiteral'&&value.expressions.length===0?value.quasis[0].value.cooked:null;
+      if(typeof css!=='string')throw new Error(`${filename}: shadow styles must be a fixed CSS literal`);
+      checkCss(css);
+    }
     if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression' || node.callee.property.name !== 'setAttribute') return;
     const name=node.arguments[0]?.value;
     if (!['data-vfs-active','data-vfs-player','popover','aria-label','title','data-title-no-tooltip'].includes(name)) throw new Error(`${filename}: unapproved or dynamic attribute write`);

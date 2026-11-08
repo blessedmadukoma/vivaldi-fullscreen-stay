@@ -14,6 +14,7 @@ class Element {
     return this.parentElement?.closest(selector) ?? null;
   }
   getBoundingClientRect(){return {width:480,height:270,top:10,left:10,right:490,bottom:280};}
+  getRootNode(){return null;}
   matches(s){ return s === ":popover-open" && Boolean(this.open); }
   showPopover(){this.open=true;}
   hidePopover(){this.open=false;}
@@ -26,6 +27,7 @@ class Element {
 }
 class Video extends Element {}
 class Frame extends Element {}
+class ShadowRoot {}
 function fixture(options={}){
  const listeners={};const root=new Element(),body=new Element(),player=new Element(),button=new Element(),video=new Video();
  body.parentElement=root;player.parentElement=body;video.parentElement=player;button.parentElement=player;button.kind='button';if(options.origin==='https://x.com')player.kind='x-player';player.video=video;player.button=button;const watchPage=new Element();player.theatreButton={click(){watchPage.setAttribute('theater','');}};player.classes.add('existing');button.setAttribute('aria-label','Full screen (f)');
@@ -38,8 +40,8 @@ function fixture(options={}){
  const location={origin:options.origin??'https://www.youtube.com',protocol:new URL(options.origin??'https://www.youtube.com').protocol,pathname:options.pathname??'/watch'};
  const observers=[];
  class MutationObserver{constructor(callback){this.callback=callback;observers.push(this);}observe(){this.connected=true;}disconnect(){this.connected=false;}}
- vm.runInNewContext(fs.readFileSync(extensionFile('content.js'),'utf8'),{Element,HTMLElement:Element,HTMLVideoElement:Video,HTMLIFrameElement:Frame,window,document,MutationObserver,Set,chrome,location,crypto});
- const emit=(name,extra={})=>{const e={key:'',isTrusted:true,target:player,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};for(const f of listeners[name]??[])f(e);return e;};
+ vm.runInNewContext(fs.readFileSync(extensionFile('content.js'),'utf8'),{Element,HTMLElement:Element,HTMLVideoElement:Video,HTMLIFrameElement:Frame,ShadowRoot,window,document,MutationObserver,Set,chrome,location,crypto});
+ const emit=(name,extra={})=>{const e={key:'',isTrusted:true,target:player,composedPath(){return [this.target];},preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};for(const f of listeners[name]??[])f(e);return e;};
  const key=(key,extra={})=>{const e=emit('keydown',{key,...extra});emit('keyup',{key,...extra});return e;};
  return {root,player,button,video,watchPage,document,window,location,listeners,observers,messages,emit,key,relay:(m,s={id:'test-extension'})=>relay?.(m,s),active:()=>root.attributes.has('data-vfs-active')};
 }
@@ -93,4 +95,13 @@ test('A worker relay expands only the focused visible iframe and never re-broadc
  f.document.hasFocus=()=>false;f.relay(message);assert(!f.active());
  f.document.hasFocus=()=>true;f.relay(message);assert(f.active());assert(frame.open);assert.equal(f.messages.length,0);
  f.relay({type:'vfs:relay',expanded:false,activation:''});assert(!f.active());assert(!frame.open);assert.equal(f.messages.length,0);
+});
+test('F typed in an open-shadow input is ignored after event retargeting',()=>{
+ const f=fixture(),input=new Element('input');
+ assert(!f.key('f',{composedPath:()=>[input,f.player]}).prevented);assert(!f.active());
+});
+test('A child can exit expansion started by a parent, without clearing on unrelated pagehide',()=>{
+ const f=fixture({origin:'https://player.example'}),message={type:'vfs:relay',expanded:true,activation:crypto.randomBytes(16).toString('hex')};
+ f.relay(message);assert(!f.active());assert(f.key('Escape').prevented);assert.equal(f.messages.at(-1).expanded,false);
+ f.messages.length=0;f.relay(message);f.emit('pagehide');assert.equal(f.messages.length,0);
 });

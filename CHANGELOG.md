@@ -2,6 +2,12 @@
 
 ## 2.0.0 — 8 November 2026
 
+- Follow trusted input and iframe focus through open shadow roots.
+- Recognise text-labelled fullscreen buttons beside an embedded player.
+- Let the focused child frame exit a view started by its parent.
+- Apply a fixed temporary stylesheet inside an open shadow root and remove it on exit. Add policy checks for these CSS literals.
+- Keep the existing permissions, isolated scripts and message schema.
+
 - Replace site-only matching with a general HTTP(S) video handler, including embedded frames.
 - Expand focused ancestor iframes through extension-only messages within the same tab.
 - Recognise common player wrappers and fullscreen controls. Keep YouTube theatre behaviour and X handling.
