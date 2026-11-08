@@ -2,12 +2,13 @@
   "use strict";
   const youtube = location.origin === "https://www.youtube.com";
   const x = location.origin === "https://x.com";
-  if ((!youtube && !x) || window.top !== window) return;
+  if (location.protocol !== "https:" && location.protocol !== "http:") return;
   const ROOT = "data-vfs-active";
   const PLAYER = "data-vfs-player";
   const swallowed = new Set();
   let saved = null;
   let hoveredPlayer = null;
+  const containers = '.plyr, .video-js, .jwplayer, .mejs-container, .flowplayer, [data-testid="videoPlayer"], [data-testid="videoComponent"]';
 
   function privateXPage() {
     return x && /^\/(?:i\/(?:chat|calls|flow)|messages|settings|compose|account|login|logout|oauth)(?:\/|$)/.test(location.pathname);
@@ -19,20 +20,36 @@
     return candidate instanceof HTMLElement && candidate.querySelector("video") instanceof HTMLVideoElement ? candidate : null;
   }
 
-  function playerFor(target) {
+  function playerFor(target, scan = false) {
     if (youtube) return document.querySelector("#movie_player");
     if (privateXPage()) return null;
-    const player = xPlayer(target) ?? hoveredPlayer;
+    const player = (x ? xPlayer(target) : genericPlayer(target, scan)) ?? hoveredPlayer;
     if (!player?.isConnected) return null;
     const bounds = player.getBoundingClientRect();
     return bounds.width > 0 && bounds.height > 0 && bounds.bottom > 0 && bounds.right > 0 && bounds.top < window.innerHeight && bounds.left < window.innerWidth ? player : null;
+  }
+
+  function genericPlayer(target, scan = false) {
+    if (!(target instanceof Element)) return null;
+    const known = target.closest(containers);
+    if (known?.querySelector("video") instanceof HTMLVideoElement) return known;
+    if (target instanceof HTMLVideoElement) return target;
+    if (!scan) return null;
+    // Select the nearest small container with one video, not a whole feed.
+    let parent = target;
+    while (parent && parent !== document.body && parent !== document.documentElement) {
+      if (parent.querySelectorAll("video").length === 1) return parent;
+      parent = parent.parentElement;
+    }
+    return null;
   }
 
   function fullscreenButton(target) {
     if (!(target instanceof Element)) return null;
     if (youtube) return target.closest("#movie_player .ytp-fullscreen-button");
     const button = target.closest('button, [role="button"]');
-    if (!button || !xPlayer(button)) return null;
+    if (!button || !(x ? xPlayer(button) : genericPlayer(button, true))) return null;
+    if (!x && button.matches('.plyr__control[data-plyr="fullscreen"], .vjs-fullscreen-control, .jw-icon-fullscreen, .mejs-fullscreen-button button')) return button;
     const label = button.getAttribute("aria-label") ?? button.getAttribute("title") ?? "";
     return /^(?:(?:enter|exit|toggle)(?: video)?\s+)?full\s*screen(?: mode)?(?:\s*\(f\))?$/i.test(label) ? button : null;
   }
@@ -47,7 +64,7 @@
     const state = saved;
     let request;
     try {
-      request = chrome.runtime.sendMessage({ type: "vfs:state", expanded });
+      request = chrome.runtime.sendMessage({ type: "vfs:state", expanded, activation: expanded ? state.activation : "" });
     } catch {
       if (expanded && saved === state) exit(false);
       return;
@@ -79,13 +96,15 @@
     if (notify) signal(false);
   }
 
-  function enter(player, control) {
-    if (!(player instanceof HTMLElement) || !(player.querySelector("video") instanceof HTMLVideoElement) || document.fullscreenElement) return false;
+  function enter(player, control, activation = null) {
+    if (!(player instanceof HTMLElement) || document.fullscreenElement) return false;
+    if (activation === null && !(player instanceof HTMLVideoElement) && !(player.querySelector("video") instanceof HTMLVideoElement)) return false;
+    if (activation !== null && !(player instanceof HTMLIFrameElement)) return false;
     if (typeof player.showPopover !== "function" || player.matches(":popover-open")) return false;
     const button = control ?? (youtube ? player.querySelector(".ytp-fullscreen-button") : null);
     const observer = new MutationObserver(() => { if (!player.isConnected || privateXPage()) exit(); });
     saved = {
-      player, button, observer, popover: player.getAttribute("popover"),
+      player, button, observer, activation: activation ?? Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, "0")).join(""), popover: player.getAttribute("popover"),
       scrollX: window.scrollX, scrollY: window.scrollY,
       ariaLabel: button?.getAttribute("aria-label") ?? null,
       title: button?.getAttribute("title") ?? null,
@@ -106,7 +125,7 @@
       button.setAttribute("data-title-no-tooltip", "Exit video fullscreen");
     }
     observer.observe(document.documentElement, { childList: true, subtree: true });
-    signal(true);
+    if (activation === null) signal(true);
     return true;
   }
 
@@ -165,7 +184,7 @@
       return;
     }
     const button = fullscreenButton(event.target);
-    if (button && toggle(playerFor(button), button)) consume(event);
+    if (button && toggle(playerFor(button, true), button)) consume(event);
   }, true);
 
   window.addEventListener("dblclick", event => {
@@ -174,20 +193,32 @@
     if (event.button || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (!(event.target instanceof Element)) return;
     if (youtube && !event.target.matches("#movie_player video, #movie_player .html5-video-container")) return;
-    if (x && event.target.closest('button, [role="button"], [role="slider"], input, textarea, a')) return;
+    if (!youtube && event.target.closest('button, [role="button"], [role="slider"], input, textarea, a')) return;
     if (toggle(playerFor(event.target))) consume(event);
   }, true);
 
   window.addEventListener("blur", () => swallowed.clear());
   window.addEventListener("pagehide", () => exit());
   window.addEventListener("yt-navigate-start", () => exit(), true);
-  if (x) {
+  if (!youtube) {
     window.addEventListener("pointerover", event => {
       if (!event.isTrusted) return;
-      hoveredPlayer = privateXPage() ? null : xPlayer(event.target);
+      hoveredPlayer = privateXPage() ? null : (x ? xPlayer(event.target) : genericPlayer(event.target));
     }, true);
     window.addEventListener("popstate", () => exit());
   }
-  // Reset stale state without sending page content or account data.
-  signal(false);
+  // Only the extension worker can relay expansion to focused ancestor frames.
+  // No page postMessage bridge, frame URL or page content is used.
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (sender.id !== chrome.runtime.id || sender.tab || !message || typeof message !== "object" || Array.isArray(message) || Object.keys(message).length !== 3) return;
+    if (message.type !== "vfs:relay" || typeof message.expanded !== "boolean" || typeof message.activation !== "string") return;
+    if (!message.expanded) { if (message.activation === "") exit(false); return; }
+    if (!/^[a-f0-9]{32}$/.test(message.activation) || saved?.activation === message.activation || privateXPage()) return;
+    const frame = document.activeElement;
+    if (!document.hasFocus() || !(frame instanceof HTMLIFrameElement)) return;
+    const bounds = frame.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0 || bounds.bottom <= 0 || bounds.right <= 0 || bounds.top >= window.innerHeight || bounds.left >= window.innerWidth) return;
+    exit(false);
+    enter(frame, null, message.activation);
+  });
 })();

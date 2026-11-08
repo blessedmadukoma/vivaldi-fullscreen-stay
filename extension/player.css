@@ -32,6 +32,14 @@ html[data-vfs-active] [data-vfs-player] .html5-video-container {
   height: 100% !important;
 }
 
+html[data-vfs-active] [data-vfs-player] :is(.plyr__video-wrapper, .jw-media, .mejs-mediaelement) {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+
 html[data-vfs-active] [data-vfs-player] video {
   position: absolute !important;
   inset: 0 !important;
@@ -39,6 +47,10 @@ html[data-vfs-active] [data-vfs-player] video {
   height: 100% !important;
   object-fit: contain !important;
   transform: none !important;
+}
+
+html[data-vfs-active] video[data-vfs-player] {
+  object-fit: contain !important;
 }
 
 html[data-vfs-active] [data-vfs-player] .ytp-chrome-bottom {

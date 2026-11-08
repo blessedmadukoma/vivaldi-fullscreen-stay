@@ -4,6 +4,7 @@ const test = require('node:test');
 const extensionFile = name => path.join(__dirname, '..', 'extension', name);
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 class Element {
   constructor(kind='') { this.kind=kind; this.attributes=new Map(); this.isConnected=true; this.parentElement=null; this.classes=new Set(); this.classList={contains:k=>this.classes.has(k),add:(...ks)=>ks.forEach(k=>this.classes.add(k)),remove:k=>this.classes.delete(k)}; }
   closest(selector) {
@@ -21,23 +22,26 @@ class Element {
   getAttribute(k){return this.attributes.get(k)??null;}
   hasAttribute(k){return this.attributes.has(k);}
   querySelector(s){if(s==='video')return this.video;if(s==='.ytp-fullscreen-button')return this.button;if(s==='.ytp-size-button')return this.theatreButton;return null;}
+  querySelectorAll(s){return s==='video'&&this.video?[this.video]:[];}
 }
 class Video extends Element {}
+class Frame extends Element {}
 function fixture(options={}){
  const listeners={};const root=new Element(),body=new Element(),player=new Element(),button=new Element(),video=new Video();
  body.parentElement=root;player.parentElement=body;video.parentElement=player;button.parentElement=player;button.kind='button';if(options.origin==='https://x.com')player.kind='x-player';player.video=video;player.button=button;const watchPage=new Element();player.theatreButton={click(){watchPage.setAttribute('theater','');}};player.classes.add('existing');button.setAttribute('aria-label','Full screen (f)');
- const document={title:"Test video - YouTube",documentElement:root,fullscreenElement:null,querySelector:s=>s==='#movie_player'?player:s==='ytd-watch-flexy'?watchPage:null};
+ const document={title:"Test video - YouTube",documentElement:root,body,activeElement:player,hasFocus:()=>true,fullscreenElement:null,querySelector:s=>s==='#movie_player'?player:s==='ytd-watch-flexy'?watchPage:null};
  const window={innerWidth:1280,innerHeight:720,scrollX:10,scrollY:20,scrollTo:(x,y)=>{window.scrollX=x;window.scrollY=y;},addEventListener:(n,f)=>(listeners[n]??=[]).push(f)};
  window.top=options.frame ? {} : window;
  const messages=[];
- const chrome={runtime:{sendMessage(message){if(options.runtimeClosed)throw new Error('Context closed');messages.push(JSON.parse(JSON.stringify(message)));return Promise.resolve({ok:options.ack!==false});}}};
- const location={origin:options.origin??'https://www.youtube.com',pathname:options.pathname??'/watch'};
+ let relay;
+ const chrome={runtime:{id:'test-extension',onMessage:{addListener(fn){relay=fn;}},sendMessage(message){if(options.runtimeClosed)throw new Error('Context closed');messages.push(JSON.parse(JSON.stringify(message)));return Promise.resolve({ok:options.ack!==false});}}};
+ const location={origin:options.origin??'https://www.youtube.com',protocol:new URL(options.origin??'https://www.youtube.com').protocol,pathname:options.pathname??'/watch'};
  const observers=[];
  class MutationObserver{constructor(callback){this.callback=callback;observers.push(this);}observe(){this.connected=true;}disconnect(){this.connected=false;}}
- vm.runInNewContext(fs.readFileSync(extensionFile('content.js'),'utf8'),{Element,HTMLElement:Element,HTMLVideoElement:Video,window,document,MutationObserver,Set,chrome,location});
+ vm.runInNewContext(fs.readFileSync(extensionFile('content.js'),'utf8'),{Element,HTMLElement:Element,HTMLVideoElement:Video,HTMLIFrameElement:Frame,window,document,MutationObserver,Set,chrome,location,crypto});
  const emit=(name,extra={})=>{const e={key:'',isTrusted:true,target:player,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};for(const f of listeners[name]??[])f(e);return e;};
  const key=(key,extra={})=>{const e=emit('keydown',{key,...extra});emit('keyup',{key,...extra});return e;};
- return {root,player,button,video,watchPage,document,window,location,listeners,observers,messages,emit,key,active:()=>root.attributes.has('data-vfs-active')};
+ return {root,player,button,video,watchPage,document,window,location,listeners,observers,messages,emit,key,relay:(m,s={id:'test-extension'})=>relay?.(m,s),active:()=>root.attributes.has('data-vfs-active')};
 }
 test('F expands the existing player; second F restores it',()=>{const f=fixture();assert(f.key('f').prevented);assert(f.active());assert(f.player.open);assert.equal(f.document.title,'Test video - YouTube');assert.deepEqual([...f.player.classes],['existing']);assert(f.key('f').prevented);assert(!f.active());assert(!f.player.open);assert.equal(f.document.title,'Test video - YouTube');assert.deepEqual([...f.player.classes],['existing']);assert.equal(f.button.getAttribute('aria-label'),'Full screen (f)');assert(!f.observers[0].connected);});
 test('Esc exits and consumes keydown and keyup',()=>{const f=fixture();f.key('f');const a=f.emit('keydown',{key:'Escape'});const b=f.emit('keyup',{key:'Escape'});assert(a.prevented&&a.stopped&&b.prevented&&b.stopped);assert(!f.active());});
@@ -51,17 +55,17 @@ test('F and Esc preserve the existing theatre state',()=>{for(const key of ['f',
 test('Synthetic keyboard, click and double-click cannot activate the extension',()=>{
  for(const kind of ['keydown','click','dblclick']){const f=fixture();f.emit(kind,{key:'f',isTrusted:false});assert(!f.active());assert(!f.messages.some(m=>m.expanded));}
 });
-test('Origin and top-frame guards fail closed',()=>{
- for(const options of [{origin:'https://evil.example'},{origin:'https://www.youtube.com.evil.example'},{frame:true}]){
+test('Internal and non-web origins fail closed',()=>{
+ for(const options of [{origin:'file://'},{origin:'chrome://settings'},{origin:'chrome-extension://other'}]){
   const f=fixture(options);f.key('f');assert(!f.active());assert.equal(f.messages.length,0);
  }
 });
 test('Forging the old title marker cannot activate the extension',()=>{
  const f=fixture();f.document.title='⛶ YouTube • forged';assert(!f.active());assert(!f.messages.some(m=>m.expanded));
 });
-test('Messages contain only an explicit boolean and a fixed type',()=>{
- const f=fixture();f.key('f');f.key('Escape');assert.equal(f.messages.length,3);
- for(const m of f.messages){assert.deepEqual(Object.keys(m).sort(),['expanded','type']);assert.equal(m.type,'vfs:state');assert.equal(typeof m.expanded,'boolean');}
+test('Messages contain only layout state and a random activation ID',()=>{
+ const f=fixture();f.key('f');f.key('Escape');assert.equal(f.messages.length,2);
+ for(const m of f.messages){assert.deepEqual(Object.keys(m).sort(),['activation','expanded','type']);assert.equal(m.type,'vfs:state');assert.equal(typeof m.expanded,'boolean');assert(m.expanded?/^[a-f0-9]{32}$/.test(m.activation):m.activation==='');}
 });
 test('A rejected indicator restores the page instead of hiding browser controls',async()=>{
  const f=fixture({ack:false});f.key('f');await new Promise(setImmediate);assert(!f.active());assert(!f.player.open);
@@ -80,4 +84,13 @@ test('X private SPA navigation exits and only sends a clear',()=>{
 });
 test('An invalidated extension context rolls back without throwing from the input handler',()=>{
  const f=fixture({runtimeClosed:true});assert.doesNotThrow(()=>f.key('f'));assert(!f.active());assert(!f.player.open);
+});
+test('A worker relay expands only the focused visible iframe and never re-broadcasts',()=>{
+ const f=fixture({origin:'https://parent.example'}),frame=new Frame();f.document.activeElement=frame;
+ const message={type:'vfs:relay',expanded:true,activation:crypto.randomBytes(16).toString('hex')};
+ f.relay(message,{id:'other'});assert(!f.active());
+ f.relay(message,{id:'test-extension',tab:{id:1}});assert(!f.active());
+ f.document.hasFocus=()=>false;f.relay(message);assert(!f.active());
+ f.document.hasFocus=()=>true;f.relay(message);assert(f.active());assert(frame.open);assert.equal(f.messages.length,0);
+ f.relay({type:'vfs:relay',expanded:false,activation:''});assert(!f.active());assert(!frame.open);assert.equal(f.messages.length,0);
 });

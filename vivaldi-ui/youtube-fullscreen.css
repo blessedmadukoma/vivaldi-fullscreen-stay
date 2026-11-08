@@ -1,6 +1,6 @@
 /* State comes from this extension's browser-owned action badge, not a page title.
    Pin the extension in Vivaldi's toolbar. Web pages cannot set this badge. */
-@scope (#browser.fullscreen:has(.ExtensionIcon.ojakobpddhleekkhkofnkoolidnbapbo .button-badge):has(.webpageview.active webview:is([src^="https://www.youtube.com/"], [src^="https://x.com/"]))) {
+@scope (#browser.fullscreen:has(.ExtensionIcon.ojakobpddhleekkhkofnkoolidnbapbo .button-badge):has(.webpageview.active webview:is([src^="http://"], [src^="https://"]))) {
   /* Keep the surrounding browser geometry and virtualised tabs unchanged. */
   #webview-container,
   #webpage-stack,
