@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Fullscreen Stay",
-  "version": "1.2.0",
-  "description": "Keep Vivaldi in Mac fullscreen when leaving video view on YouTube and X.com.",
+  "version": "2.0.0",
+  "description": "Keep Vivaldi in Mac fullscreen when leaving HTML video players, including embedded streams.",
   "content_scripts": [
     {
       "matches": [
-        "https://www.youtube.com/*",
-        "https://x.com/*"
+        "http://*/*",
+        "https://*/*"
       ],
       "run_at": "document_start",
       "js": [
@@ -16,7 +16,7 @@
       "css": [
         "player.css"
       ],
-      "all_frames": false,
+      "all_frames": true,
       "world": "ISOLATED"
     }
   ],

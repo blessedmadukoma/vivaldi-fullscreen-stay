@@ -8,17 +8,18 @@ Do not mix the old CSS with the new extension. Remove the old `youtube-fullscree
 
 ## Trust boundaries
 
-- The content script is restricted to the top-level `https://www.youtube.com/` and `https://x.com/` origins and runs in Chrome's isolated world.
+- Version 2.0.0 content scripts run in HTTP(S) pages and matching frames, in Chrome's isolated world. Internal browser pages and local files are excluded. Versions 1.1.0 and 1.2.0 had narrower site access.
 - Keyboard, click and double-click actions require a browser-trusted event. Page JavaScript cannot activate this extension by dispatching an event.
-- The worker accepts only a fixed message type and a boolean. It checks the browser-provided extension ID, frame, document lifecycle, tab ID and exact origin. It can change only this extension's own per-tab badge.
-- The browser appearance rule requires that badge and an active allowed-site webview. A page title or page-created DOM element cannot set the browser-owned badge.
+- The worker accepts only a fixed message type, boolean and random activation ID. It checks the browser-provided extension ID, frame, document lifecycle, tab ID, HTTP(S) scheme and matching sender origin. It relays layout state only within that sender's tab and changes its own per-tab badge.
+- Content scripts accept relays only from their own extension worker. A relay can expand only a visible iframe in a document's focused frame chain. There is no page `postMessage` bridge, main-world script or override of the native Fullscreen API. \[4\]
+- The browser appearance rule requires that badge and an active HTTP(S) webview. A page title or page-created DOM element cannot set the browser-owned badge.
 - The extension has no cookie, history, storage, debugger, native-messaging, file, download or management permission. It neither sends network requests nor loads remote code. There are no runtime dependencies.
 
 The event-driven worker has no polling or keep-alive timer. It wakes for state changes and navigation. This audit did not measure battery consumption.
 
 ## What this does not guarantee
 
-An extension with YouTube or X site access can read and change those sites’ DOM. Version 1.2.0 adds X access and therefore requires explicit approval when updating the installed helper. X private routes cannot activate the badge; they can always clear it after navigation. The reviewed code uses it for the player and controls; a malicious future update could misuse the same access. The extension CSP does not block every possible content-script network mechanism. Permission restrictions, policy checks, code review and the release source must be considered together. \[1\], \[2\]
+All-site DOM access is a material increase over the YouTube/X-only release. It includes the ability to read or modify signed-in website pages. Installing 2.0.0 therefore requires approval for this wider access. The reviewed code uses it only for player layout, control labels and the focused iframe; a malicious future update could misuse the same access. X private routes cannot activate the badge and can always clear it after navigation. The extension CSP does not block every possible content-script network mechanism. Permission restrictions, policy checks, code review and the release source must be considered together. \[1\], \[2\]
 
 No source audit or scanner can prove that a browser, operating system, publisher account or future release is free of vulnerabilities. This is a scoped code audit, not a certification against a named compliance standard. Keep Vivaldi and macOS updated. No Web Store review has been performed.
 
@@ -27,7 +28,7 @@ No source audit or scanner can prove that a browser, operating system, publisher
 - Pre-commit: production-code and manifest policy checks, unit/attack tests and staged secret scanning.
 - CI: those checks, full Git-history secret scanning, dependency advisories, Chromium extension/browser tests, CodeQL security queries and release packaging checks.
 - Actions are pinned to commit hashes. Development dependencies are pinned in the lockfile with integrity digests. Gitleaks downloads are pinned and checked against recorded SHA-256 digests.
-- Dependabot proposes dependency and action updates. Updates still require checks and review.
+- Dependabot alerts and security updates remain enabled. Routine version-update PRs are disabled. Updates still require checks and review.
 
 The policy scanner is a conservative change detector. It rejects network, storage, dynamic-code and unapproved browser capabilities in production JavaScript. It is not a general JavaScript sandbox or a substitute for review.
 
@@ -40,3 +41,4 @@ Use GitHub's **Report a vulnerability** feature when available. Do not put crede
 1. Chrome for Developers, [“Content scripts”](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts).
 2. Chrome for Developers, [“Stay secure”](https://developer.chrome.com/docs/extensions/develop/security-privacy/stay-secure).
 3. Chrome for Developers, [“Action API”](https://developer.chrome.com/docs/extensions/reference/api/action).
+4. Chrome for Developers, [“Message passing”](https://developer.chrome.com/docs/extensions/develop/concepts/messaging).

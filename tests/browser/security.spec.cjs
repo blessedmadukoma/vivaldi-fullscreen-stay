@@ -18,13 +18,22 @@ const xFixture=`<!doctype html><title>X video fixture</title><style>[data-testid
 <input aria-label="Search"><div data-testid="videoPlayer" id="x-one"><div data-testid="videoComponent"><video></video></div><div role="button" tabindex="0" aria-label="Fullscreen">Expand</div></div>
 <div data-testid="videoPlayer" id="x-two"><div data-testid="videoComponent"><video></video></div><div role="button" tabindex="0" aria-label="Fullscreen">Expand</div></div>
 <script>window.nativeFullscreenCalls=0;document.querySelectorAll('[role="button"]').forEach(el=>el.addEventListener('click',()=>window.nativeFullscreenCalls++));</script>`;
+const streamFixture=`<!doctype html><title>Stream fixture</title><style>.plyr{position:relative;width:480px;height:270px;background:black}.plyr__video-wrapper{position:relative;aspect-ratio:16/9;width:100%}video{width:100%;height:100%}button{position:absolute;bottom:0;right:0}</style>
+<div class="plyr"><div class="plyr__video-wrapper"><video></video></div><button class="plyr__control" data-plyr="fullscreen" aria-label="Enter fullscreen">Expand</button></div>
+<script>window.nativeFullscreenCalls=0;document.querySelector('button').addEventListener('click',()=>window.nativeFullscreenCalls++);</script>`;
+const parentFixture=`<!doctype html><title>Parent fixture</title><iframe title="Selected stream" src="https://middle.example/embed" style="width:500px;height:300px"></iframe><iframe title="Other stream" src="https://player.example/other" style="width:500px;height:300px"></iframe>`;
+const middleFixture=`<!doctype html><title>Middle fixture</title><iframe title="Video" src="https://player.example/embed" style="width:480px;height:270px"></iframe>`;
 
 let context,worker,profile;
 test.beforeEach(async()=>{
   profile=fs.mkdtempSync(path.join(os.tmpdir(),'vfs-security-'));
   context=await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true,args:[`--disable-extensions-except=${path.join(root,'extension')}`,`--load-extension=${path.join(root,'extension')}`]});
   [worker]=context.serviceWorkers();if(!worker)worker=await context.waitForEvent('serviceworker');
-  await context.route('**/*',route=>route.fulfill({contentType:'text/html',body:new URL(route.request().url()).hostname==='x.com'?xFixture:fixture}));
+  await context.route('**/*',route=>{
+    const host=new URL(route.request().url()).hostname;
+    const body=host==='x.com'?xFixture:host==='parent.example'?parentFixture:host==='middle.example'?middleFixture:host==='player.example'?streamFixture:host==='native.example'?'<!doctype html><title>Native video</title><main><p>Ordinary text selection</p><input aria-label="Search"><video controls style="width:480px;height:270px"></video></main>':fixture;
+    return route.fulfill({contentType:'text/html',body});
+  });
 });
 test.afterEach(async()=>{await context?.close();fs.rmSync(profile,{recursive:true,force:true});});
 async function pageAt(url='https://www.youtube.com/watch?v=fixture'){
@@ -70,7 +79,7 @@ test('Normal expansion causes no extra network requests',async()=>{
   expect(requests).toEqual([]);
 });
 
-test('Browser CSS needs the protected extension badge AND active YouTube origin',async()=>{
+test('Browser CSS needs the protected extension badge AND an HTTP(S) webview',async()=>{
   const page=await context.newPage();
   await page.setContent(`<div id="browser" class="fullscreen"><div class="ExtensionIcon ${extensionId}"></div><div id="main"><div class="inner"><div id="webview-container"><div class="webpageview active"><webview src="https://www.youtube.com/watch?v=fixture"></webview></div></div></div></div></div>`);
   await page.addStyleTag({content:fs.readFileSync(path.join(root,'vivaldi-ui/youtube-fullscreen.css'),'utf8')});
@@ -78,9 +87,11 @@ test('Browser CSS needs the protected extension badge AND active YouTube origin'
   expect(await position()).not.toBe('fixed');await page.evaluate(()=>{document.title='⛶ YouTube • forged';});expect(await position()).not.toBe('fixed');
   await page.locator('.ExtensionIcon').evaluate(el=>{const badge=document.createElement('span');badge.className='button-badge';badge.textContent='FS';el.appendChild(badge);});
   expect(await position()).toBe('fixed');
-  await page.locator('webview').evaluate(el=>el.setAttribute('src','https://www.youtube.com.evil.example/'));expect(await position()).not.toBe('fixed');
+  await page.locator('webview').evaluate(el=>el.setAttribute('src','https://stream.example/'));expect(await position()).toBe('fixed');
   await page.locator('webview').evaluate(el=>el.setAttribute('src','https://x.com/example/status/1'));expect(await position()).toBe('fixed');
-  await page.locator('webview').evaluate(el=>el.setAttribute('src','https://x.com.evil.example/'));expect(await position()).not.toBe('fixed');
+  for(const url of ['chrome://settings/','file:///tmp/video','chrome-extension://other/page.html']){
+    await page.locator('webview').evaluate((el,url)=>el.setAttribute('src',url),url);expect(await position()).not.toBe('fixed');
+  }
 });
 
 test('X expands the selected player without running its native fullscreen handler',async()=>{
@@ -99,4 +110,55 @@ test('X rejects synthetic fullscreen clicks, typing and private-route activation
   await page.getByRole('textbox',{name:'Search'}).fill('f');await page.getByRole('textbox',{name:'Search'}).press('f');expect(await badge()).toBe('');
   await page.goto('https://x.com/i/chat');await page.locator('#x-one').getByRole('button',{name:'Fullscreen'}).click();
   await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');expect(await badge()).toBe('');
+});
+
+test('A generic streaming player uses its wrapper and keeps native fullscreen inactive',async()=>{
+  const page=await pageAt('https://player.example/embed');
+  await page.getByRole('button',{name:'Enter fullscreen'}).click();
+  await expect(page.locator('.plyr')).toHaveAttribute('data-vfs-player');await expect.poll(badge).toBe('FS');
+  expect(await page.evaluate(()=>window.nativeFullscreenCalls)).toBe(0);
+  const size=await page.locator('video').boundingBox();expect(size.width).toBe(page.viewportSize().width);expect(size.height).toBe(page.viewportSize().height);
+  await page.keyboard.press('Escape');await expect.poll(badge).toBe('');
+  await page.locator('video').dblclick();await expect.poll(badge).toBe('FS');
+  await page.keyboard.press('f');await expect.poll(badge).toBe('');
+});
+
+test('Nested cross-origin streams expand only the focused iframe chain and restore all frames',async()=>{
+  const page=await context.newPage();await page.goto('https://parent.example/watch');
+  const middle=page.frameLocator('iframe[title="Selected stream"]');
+  const child=middle.frameLocator('iframe[title="Video"]');
+  const other=page.frameLocator('iframe[title="Other stream"]');
+  await child.getByRole('button',{name:'Enter fullscreen'}).click();
+  await expect(child.locator('.plyr')).toHaveAttribute('data-vfs-player');
+  await expect(middle.locator('iframe')).toHaveAttribute('data-vfs-player');
+  await expect(page.locator('iframe[title="Selected stream"]')).toHaveAttribute('data-vfs-player');
+  await expect(other.locator('html')).not.toHaveAttribute('data-vfs-active');await expect.poll(badge).toBe('FS');
+  const size=await child.locator('video').boundingBox();expect(size.width).toBe(page.viewportSize().width);expect(size.height).toBe(page.viewportSize().height);
+  await page.keyboard.press('Escape');await expect.poll(badge).toBe('');
+  await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+  await expect(middle.locator('html')).not.toHaveAttribute('data-vfs-active');
+  await expect(child.locator('html')).not.toHaveAttribute('data-vfs-active');
+});
+
+test('Generic pages cannot activate through synthetic input or a forged page message',async()=>{
+  const page=await pageAt('https://player.example/embed');
+  await page.evaluate(()=>{
+    document.querySelector('button').click();
+    window.dispatchEvent(new KeyboardEvent('keydown',{key:'f',bubbles:true}));
+    window.postMessage({type:'vfs:relay',expanded:true,activation:'0123456789abcdef0123456789abcdef'},'*');
+  });
+  await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');expect(await badge()).toBe('');
+});
+
+test('A native video without a player library expands on trusted F and restores on Esc',async()=>{
+  for(const scheme of ['https','http']){
+    const page=await pageAt(`${scheme}://native.example/watch`);
+    await page.locator('p').dblclick();await page.keyboard.press('f');await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+    await page.getByRole('textbox',{name:'Search'}).press('f');await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+    await page.locator('video').click({position:{x:100,y:50}});await page.locator('video').hover();await page.keyboard.press('f');
+    await expect(page.locator('video')).toHaveAttribute('data-vfs-player');await expect.poll(badge).toBe('FS');
+    const size=await page.locator('video').boundingBox();expect(size.width).toBe(page.viewportSize().width);expect(size.height).toBe(page.viewportSize().height);
+    await page.keyboard.press('Escape');await expect.poll(badge).toBe('');
+    await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+  }
 });

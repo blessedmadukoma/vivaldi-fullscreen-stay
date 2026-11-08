@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0 — 8 November 2026
+
+- Replace site-only matching with a general HTTP(S) video handler, including embedded frames.
+- Expand focused ancestor iframes through extension-only messages within the same tab.
+- Recognise common player wrappers and fullscreen controls. Keep YouTube theatre behaviour and X handling.
+- Require approval for all-site access. Retain trusted-input checks, isolated scripts, strict messages, no network code and no storage.
+
 ## 1.2.0 — 8 November 2026
 
 - Add a scoped X.com (formerly Twitter) player handler.

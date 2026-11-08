@@ -1,6 +1,6 @@
 # Fullscreen Stay
 
-Keep Vivaldi in macOS fullscreen when you leave a fullscreen video on YouTube or X.com (formerly Twitter).
+Keep Vivaldi in macOS fullscreen when you leave an HTML video player, including embedded streams.
 
 This workaround expands the existing player inside the browser window. A companion Vivaldi appearance rule lets it cover the browser controls. It avoids the native video fullscreen transition that can also take Vivaldi out of macOS fullscreen.
 
@@ -13,16 +13,19 @@ This workaround expands the existing player inside the browser window. A compani
 3. Keep **Fullscreen Stay** visible in Vivaldi’s extensions toolbar. In **Settings → Address Bar**, choose **Toggle Only Hidden Extensions** instead of **Toggle All Extensions**. If needed, right-click this helper and select **Show Button**. Other extension buttons can use **Hide Button**. The protected badge needs this helper to remain visible; otherwise the video can fill the tab while browser bars remain visible.
 4. Open `vivaldi://experiments/` and enable **Allow CSS modifications** if needed to expose the appearance setting.
 5. Open **Settings → Appearance → Custom UI Modifications**. Select the extracted `vivaldi-ui` folder. If you already use a custom CSS folder, copy `youtube-fullscreen.css` into that folder instead.
-6. Restart Vivaldi. Refresh YouTube and X tabs that were already open.
+6. Restart Vivaldi. Refresh video tabs that were already open.
 
 These changes affect the current Vivaldi profile. They do not edit Vivaldi's application files.
 
+For an in-place update, replace both parts, then click **Reload** on the Fullscreen Stay card in `vivaldi://extensions/`. Restart Vivaldi to load the companion CSS, then refresh video tabs. Use the extension's Reload control as well as restarting so the worker and page scripts use the same revision.
+
 ## Use
 
-Put Vivaldi in macOS fullscreen first, using **Control + Command + F** or the green window button. Open a video on `https://www.youtube.com/` or `https://x.com/`.
+Put Vivaldi in macOS fullscreen first, using **Control + Command + F** or the green window button. Open a video on an HTTP or HTTPS page.
 
-- On YouTube, **F** expands the video. On X, use the player’s fullscreen control or double-click its video area. **F** also works when the X video is focused or hovered. **F** or **Esc** returns to the page while keeping the browser in macOS fullscreen.
-- The player's fullscreen button and a double-click on the video also toggle the expanded view.
+- On YouTube, **F** expands the video. On other sites, focus or hover the video and press **F**, or double-click its video area. **F** or **Esc** restores the page while keeping the browser in macOS fullscreen.
+- Recognised fullscreen buttons also toggle the expanded view. The shared handler recognises common Plyr, Video.js, JW Player and MediaElement controls, plus labelled fullscreen buttons beside a video. Use F or double-click if a site's button is not recognised.
+- For embedded streams, the helper expands the video and its focused parent frames. It does not reload or move the video element.
 - On YouTube, **T** or the theatre button leaves the expanded view and passes the original action to YouTube.
 - Entering fullscreen from theatre view and leaving with F or Esc preserves YouTube's existing theatre state.
 
@@ -30,15 +33,17 @@ If the browser is windowed, the video fills that window. The extension does not 
 
 ## Privacy and access
 
-The content script runs only on `https://www.youtube.com/*` and `https://x.com/*`. Adding X.com requires new site access: the browser can allow the extension to read and change pages across that host. The code uses this access for player layout and keyboard controls. It ignores known X chat, calls, account, settings and compose routes. Those runtime guards do not reduce the browser permission to individual paths. It does not read or transmit messages, cookies or account tokens.
+Version 2.0.0 runs on HTTP and HTTPS pages and their matching frames. This is broader access than the YouTube/X-only release: the browser can allow it to read and change pages across all websites, including signed-in pages. Review this permission before installing. The code uses DOM access for player layout, control labels and the focused iframe. It does not read or transmit messages, form contents, cookies or account tokens. Known X chat, calls, account, settings and compose routes remain inactive; these guards do not reduce the granted permission.
 
-The extension sends no network requests, analytics or remote code and stores no data. A small event-driven service worker validates state messages and updates only its own toolbar badge. It has no polling or keep-alive timer. YouTube itself continues to make its normal network requests. See [SECURITY.md](SECURITY.md) for the threat model and limits.
+The extension sends no network requests, analytics or remote code and stores no data. Its event-driven worker validates state messages, relays layout state within the same tab and updates its own toolbar badge. Messages contain a boolean and a random activation ID; they contain no page content or requested URL. There is no polling or keep-alive timer. Streaming sites continue to make their normal requests. See [SECURITY.md](SECURITY.md) for the threat model and limits.
 
 ## Limits and verification
 
 Version **1.0.2** was checked on **Vivaldi 8.3.4191.30, macOS 26.7.2, Apple silicon**. The user confirmed stable fullscreen playback and both transitions: **F → T** and **theatre → F → Esc**. The YouTube queue was retained.
 
-YouTube, X or Vivaldi layout changes can require an update. Embedded players, Shorts, other video sites and other browser versions have not been verified. X support was checked on a public video in Vivaldi 8.3.4191.30: playback stayed expanded, and F and Esc restored the page while retaining native Mac fullscreen. This does not establish support for every X layout or streaming service. Version 1.1.0 replaces page-title signalling with an extension-owned badge and an exact allowed-site webview check. The appearance rule still depends on Vivaldi’s interface selectors. It keeps the tab bar in layout, because removing it caused a repeated show/hide cycle in the first local version.
+YouTube, X and Vivaldi layout changes can require an update. X support was checked live in Vivaldi 8.3.4191.30. The general handler passes isolated tests for ordinary players and nested cross-origin frames. A live embedded Kwik/Plyr stream was also checked in that Vivaldi version: it stayed expanded during more than 50 seconds of playback, and Esc, F and the player button restored the page while retaining native Mac fullscreen. This does not establish support for every player. Browser-internal pages, local files, opaque/sandboxed frames, closed shadow DOM and unrecognised controls can remain unsupported. No DRM or site security control is bypassed.
+
+The appearance rule requires this extension's protected badge and an active HTTP(S) webview. A page title cannot activate it. It depends on Vivaldi's interface selectors and keeps the tab bar in layout to avoid a repeated show/hide cycle.
 
 For development, clone this repository; the installation ZIP contains the runtime files and documentation. Unit tests use mock pages, and browser tests run the extension in isolated Chromium profiles. The hardened helper was also tested live in Vivaldi 8.3.4191.30: F, Esc and theatre transitions retained native Mac fullscreen. Run the checks with:
 
@@ -60,7 +65,7 @@ Read the [security audit](docs/security-audit.md) before relying on the extensio
 
 1. Remove **Fullscreen Stay** from `vivaldi://extensions/`.
 2. Delete `youtube-fullscreen.css` from your custom CSS folder. Keep any unrelated CSS files.
-3. Restart Vivaldi and refresh YouTube.
+3. Restart Vivaldi and refresh video tabs.
 
 ## Related Vivaldi issue
 
