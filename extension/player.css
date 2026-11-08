@@ -45,3 +45,13 @@ html[data-vfs-active] [data-vfs-player] .ytp-chrome-bottom {
   left: 12px !important;
   width: calc(100% - 24px) !important;
 }
+
+/* X keeps its controls beside the inner component, inside videoPlayer. */
+html[data-vfs-active] [data-vfs-player][data-testid="videoPlayer"] [data-testid="videoComponent"] {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}

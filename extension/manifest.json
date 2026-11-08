@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Fullscreen Stay",
-  "version": "1.1.0",
-  "description": "Use F and Esc for a full-window YouTube player, preserving the browser's Mac fullscreen state.",
+  "name": "Fullscreen Stay",
+  "version": "1.2.0",
+  "description": "Keep Vivaldi in Mac fullscreen when leaving video view on YouTube and X.com.",
   "content_scripts": [
     {
       "matches": [
-        "https://www.youtube.com/*"
+        "https://www.youtube.com/*",
+        "https://x.com/*"
       ],
       "run_at": "document_start",
       "js": [
@@ -25,7 +26,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "YouTube Fullscreen Stay",
+    "default_title": "Fullscreen Stay",
     "default_icon": {
       "16": "icons/16.png",
       "32": "icons/32.png"
