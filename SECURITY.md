@@ -4,7 +4,7 @@
 
 Use **1.1.0 or later**, including the matching companion CSS. Earlier versions used a page-title marker to control Vivaldi's interface and accepted synthetic input. A page could copy that marker to cover browser controls. This was an interface-spoofing risk; this audit found no account-token theft or laptop-access path.
 
-Do not mix the old CSS with the new extension. Remove the old `youtube-fullscreen.css` before installing its replacement. Version 1.1.0 has a stable extension ID, so an unpacked 1.0.2 installation must be disabled or removed and replaced once.
+Do not mix the old CSS with the new extension. Remove the old `youtube-fullscreen.css` before installing `vivaldi-fullscreen.css`. The project is now Vivaldi Fullscreen Stay. Its extension ID is unchanged. Version 1.1.0 introduced this stable ID, so an unpacked 1.0.2 installation must be disabled or removed and replaced once.
 
 ## Trust boundaries
 
@@ -17,6 +17,8 @@ Do not mix the old CSS with the new extension. Remove the old `youtube-fullscree
 - The extension has no cookie, history, storage, debugger, native-messaging, file, download or management permission. It neither sends network requests nor loads remote code. There are no runtime dependencies.
 
 The event-driven worker has no polling or keep-alive timer. It wakes for state changes and navigation. This audit did not measure battery consumption.
+
+Active layout cleanup observes direct changes to the player's ancestors, rather than mutations across the whole page. Same-document navigation clears layout through the Navigation API. Source policy rejects production timers, animation loops and `subtree: true` observers. The [performance report](docs/performance.md) records controlled CPU measurements and their limits.
 
 ## What this does not guarantee
 

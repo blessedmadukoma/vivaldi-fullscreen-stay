@@ -1,4 +1,4 @@
-# Fullscreen Stay
+# Vivaldi Fullscreen Stay
 
 Keep Vivaldi in macOS fullscreen when you leave an HTML video player, including embedded streams.
 
@@ -8,16 +8,18 @@ This workaround expands the existing player inside the browser window. A compani
 
 ## Install
 
-1. Download the ZIP from [Releases](https://github.com/blessedmadukoma/youtube-fullscreen-stay/releases/latest). Extract it to a permanent folder. Keep that folder after installation.
-2. Disable or remove any older YouTube Fullscreen Stay installation. Open `vivaldi://extensions/`, enable **Developer mode**, select **Load unpacked**, and choose the extracted `extension` folder.
-3. Keep **Fullscreen Stay** visible in Vivaldi’s extensions toolbar. In **Settings → Address Bar**, choose **Toggle Only Hidden Extensions** instead of **Toggle All Extensions**. If needed, right-click this helper and select **Show Button**. Other extension buttons can use **Hide Button**. The protected badge needs this helper to remain visible; otherwise the video can fill the tab while browser bars remain visible.
+1. Download the ZIP from [Releases](https://github.com/blessedmadukoma/vivaldi-fullscreen-stay/releases/latest). Extract it to a permanent folder. Keep that folder after installation.
+2. For a new installation, open `vivaldi://extensions/`, enable **Developer mode**, select **Load unpacked**, and choose the extracted `extension` folder. Disable an older 1.0.2 YouTube Fullscreen Stay installation first. An existing 1.1.0 or later installation can use the in-place update below.
+3. Keep **Vivaldi Fullscreen Stay** visible in Vivaldi’s extensions toolbar. In **Settings → Address Bar**, choose **Toggle Only Hidden Extensions** instead of **Toggle All Extensions**. If needed, right-click this helper and select **Show Button**. Other extension buttons can use **Hide Button**. The protected badge needs this helper to remain visible; otherwise the video can fill the tab while browser bars remain visible.
 4. Open `vivaldi://experiments/` and enable **Allow CSS modifications** if needed to expose the appearance setting.
-5. Open **Settings → Appearance → Custom UI Modifications**. Select the extracted `vivaldi-ui` folder. If you already use a custom CSS folder, copy `youtube-fullscreen.css` into that folder instead.
+5. Open **Settings → Appearance → Custom UI Modifications**. Select the extracted `vivaldi-ui` folder. If you already use a custom CSS folder, copy `vivaldi-fullscreen.css` into that folder instead.
 6. Restart Vivaldi. Refresh video tabs that were already open.
 
 These changes affect the current Vivaldi profile. They do not edit Vivaldi's application files.
 
-For an in-place update, replace both parts, then click **Reload** on the Fullscreen Stay card in `vivaldi://extensions/`. Restart Vivaldi to load the companion CSS, then refresh video tabs. Use the extension's Reload control as well as restarting so the worker and page scripts use the same revision.
+For an in-place update, replace both parts, then click **Reload** on the Vivaldi Fullscreen Stay card in `vivaldi://extensions/`. Restart Vivaldi to load the companion CSS, then refresh video tabs. Use the extension's Reload control as well as restarting so the worker and page scripts use the same revision.
+
+The project was renamed from YouTube Fullscreen Stay. The extension ID and version **2.0.0** are retained. The companion file is now `vivaldi-fullscreen.css`; remove the older `youtube-fullscreen.css` when copying the renamed file. Existing installation folders can keep their paths.
 
 ## Use
 
@@ -37,6 +39,12 @@ If the browser is windowed, the video fills that window. The extension does not 
 Version 2.0.0 runs on HTTP and HTTPS pages and their matching frames. This is broader access than the YouTube/X-only release: the browser can allow it to read and change pages across all websites, including signed-in pages. Review this permission before installing. The code uses DOM access for player layout, control labels and the focused iframe. It does not read or transmit messages, form contents, cookies or account tokens. Known X chat, calls, account, settings and compose routes remain inactive; these guards do not reduce the granted permission.
 
 The extension sends no network requests, analytics or remote code and stores no data. Its event-driven worker validates state messages, relays layout state within the same tab and updates its own toolbar badge. Messages contain a boolean and a random activation ID; they contain no page content or requested URL. There is no polling or keep-alive timer. Streaming sites continue to make their normal requests. See [SECURITY.md](SECURITY.md) for the threat model and limits.
+
+## Performance
+
+While expanded, the helper watches direct changes to the player's ancestors. Unrelated changes deeper in the page do not call its observer. Same-document navigation has a separate event handler. Source checks reject polling timers, animation loops and broad subtree observers in production code.
+
+See the [controlled performance measurements](docs/performance.md) for the method, CPU results and limits. These are CPU measurements on a Mac connected to power, not battery-runtime measurements. Run the local comparison with `npm run performance`. The test uses generated video and local fixtures in temporary Chromium profiles; it does not use signed-in browser tabs.
 
 ## Limits and verification
 
@@ -64,8 +72,8 @@ Read the [security audit](docs/security-audit.md) before relying on the extensio
 
 ## Remove
 
-1. Remove **Fullscreen Stay** from `vivaldi://extensions/`.
-2. Delete `youtube-fullscreen.css` from your custom CSS folder. Keep any unrelated CSS files.
+1. Remove **Vivaldi Fullscreen Stay** from `vivaldi://extensions/`.
+2. Delete `vivaldi-fullscreen.css` from your custom CSS folder. Keep any unrelated CSS files.
 3. Restart Vivaldi and refresh video tabs.
 
 ## Related Vivaldi issue

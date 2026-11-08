@@ -1,8 +1,8 @@
 {
-  "name": "youtube-fullscreen-stay",
+  "name": "vivaldi-fullscreen-stay",
   "version": "2.0.0",
   "private": true,
-  "description": "Development checks for the dependency-free browser extension",
+  "description": "Vivaldi fullscreen video workaround, security checks and controlled performance measurements",
   "license": "MIT",
   "engines": {
     "node": ">=22"
@@ -15,7 +15,8 @@
     "audit": "npm audit --audit-level=moderate",
     "precommit": "npm run check && npm test && npm run secrets -- --staged",
     "prepare": "git config core.hooksPath .githooks",
-    "package": "python3 scripts/package-release.py"
+    "package": "python3 scripts/package-release.py",
+    "performance": "node scripts/measure-performance.cjs"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0",

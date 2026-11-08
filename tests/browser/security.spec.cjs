@@ -90,7 +90,7 @@ test('Normal expansion causes no extra network requests',async()=>{
 test('Browser CSS needs the protected extension badge AND an HTTP(S) webview',async()=>{
   const page=await context.newPage();
   await page.setContent(`<div id="browser" class="fullscreen"><div class="ExtensionIcon ${extensionId}"></div><div id="main"><div class="inner"><div id="webview-container"><div class="webpageview active"><webview src="https://www.youtube.com/watch?v=fixture"></webview></div></div></div></div></div>`);
-  await page.addStyleTag({content:fs.readFileSync(path.join(root,'vivaldi-ui/youtube-fullscreen.css'),'utf8')});
+  await page.addStyleTag({content:fs.readFileSync(path.join(root,'vivaldi-ui/vivaldi-fullscreen.css'),'utf8')});
   const position=()=>page.locator('#webview-container').evaluate(el=>getComputedStyle(el).position);
   expect(await position()).not.toBe('fixed');await page.evaluate(()=>{document.title='⛶ YouTube • forged';});expect(await position()).not.toBe('fixed');
   await page.locator('.ExtensionIcon').evaluate(el=>{const badge=document.createElement('span');badge.className='button-badge';badge.textContent='FS';el.appendChild(badge);});
@@ -206,4 +206,19 @@ test('Shadow input and synthetic controls remain inactive; expansion adds no req
   const requests=[];page.on('request',r=>requests.push(r.url()));
   await page.getByRole('button',{name:'Fullscreen',exact:true}).click();await expect.poll(badge).toBe('FS');
   await page.keyboard.press('Escape');await expect.poll(badge).toBe('');expect(requests).toEqual([]);
+});
+
+test('Removing a player ancestor clears layout state and the protected badge',async()=>{
+  const page=await pageAt();
+  await page.keyboard.press('f');await expect.poll(badge).toBe('FS');
+  await page.locator('ytd-watch-flexy').evaluate(w=>w.remove());
+  await expect.poll(badge).toBe('');await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+});
+
+test('Same-document navigation exits without observing every page mutation',async()=>{
+  const page=await pageAt('https://x.com/example/status/1');
+  await page.locator('#x-one').getByRole('button',{name:'Fullscreen'}).click();await expect.poll(badge).toBe('FS');
+  await page.evaluate(()=>history.pushState(null,'','/i/chat'));
+  await expect.poll(badge).toBe('');await expect(page.locator('html')).not.toHaveAttribute('data-vfs-active');
+  await page.locator('#x-one').getByRole('button',{name:'Fullscreen'}).click();await expect.poll(badge).toBe('');
 });

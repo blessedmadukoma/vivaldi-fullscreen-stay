@@ -15,6 +15,7 @@ class Element {
   }
   getBoundingClientRect(){return {width:480,height:270,top:10,left:10,right:490,bottom:280};}
   getRootNode(){return null;}
+  get parentNode(){return this.parentElement;}
   matches(s){ return s === ":popover-open" && Boolean(this.open); }
   showPopover(){this.open=true;}
   hidePopover(){this.open=false;}

@@ -6,7 +6,7 @@ Leaving a fullscreen YouTube video also takes the Vivaldi window out of native m
 
 ## Steps to reproduce
 
-1. Use Vivaldi 8.3.4191.30 on macOS. Disable YouTube Fullscreen Stay and remove its companion appearance rule before testing the browser fault.
+1. Use Vivaldi 8.3.4191.30 on macOS. Disable Vivaldi Fullscreen Stay and remove its companion appearance rule before testing the browser fault.
 2. Put the Vivaldi window into native macOS fullscreen using the green window button or Control + Command + F. The browser should already occupy its own fullscreen Space.
 3. Open a YouTube video, for example `https://www.youtube.com/watch?v=q3U-KYNzCGM`.
 4. Give the player keyboard focus and press F to enter video fullscreen.

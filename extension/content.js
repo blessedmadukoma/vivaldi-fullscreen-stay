@@ -111,7 +111,18 @@
     if (activation !== null && !(player instanceof HTMLIFrameElement)) return false;
     if (typeof player.showPopover !== "function" || player.matches(":popover-open")) return false;
     const button = control ?? (youtube ? player.querySelector(".ytp-fullscreen-button") : null);
-    const observer = new MutationObserver(() => { if (!player.isConnected || privateXPage()) exit(); });
+    const observer = new MutationObserver(() => {
+      if (!player.isConnected || !player.matches(":popover-open") || privateXPage()) exit();
+      else watchAncestors();
+    });
+    function watchAncestors() {
+      observer.disconnect();
+      let parent = player.parentNode;
+      while (parent) {
+        observer.observe(parent, { childList: true });
+        parent = parent.parentNode ?? (parent instanceof ShadowRoot ? parent.host : null);
+      }
+    }
     const root = player.getRootNode();
     const shadow = root instanceof ShadowRoot ? root : null;
     const sheet = shadow ? new CSSStyleSheet() : null;
@@ -147,8 +158,7 @@
       button.setAttribute("title", "Exit video fullscreen (f)");
       button.setAttribute("data-title-no-tooltip", "Exit video fullscreen");
     }
-    observer.observe(document.documentElement, { childList: true, subtree: true });
-    if (shadow) observer.observe(shadow, { childList: true, subtree: true });
+    watchAncestors();
     if (activation === null) signal(true);
     return true;
   }
@@ -227,6 +237,7 @@
 
   window.addEventListener("blur", () => swallowed.clear());
   window.addEventListener("pagehide", () => exit());
+  window.navigation?.addEventListener("navigate", () => exit());
   window.addEventListener("yt-navigate-start", () => exit(), true);
   if (!youtube) {
     window.addEventListener("pointerover", event => {
